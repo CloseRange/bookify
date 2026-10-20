@@ -1,6 +1,8 @@
 
 const { setBookProgress } = require("./write_book_progress");
 
+const { generateResponse } = require("./author_speak");
+
 async function writeBook(prompt) {
     let step = 0;
 
@@ -9,32 +11,26 @@ async function writeBook(prompt) {
     if (!prompt || typeof prompt !== "string") {
         throw new Error("prompt must be a non-empty string");
     }
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-
-    step += 1;
-    setBookProgress(step, "Building chapter plan");
-    // TODO: Add chapter planning logic.
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-
-    step += 1;
-    setBookProgress(step, "Drafting chapters");
-    // TODO: Add chapter drafting logic.
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-
-    step += 1;
-    setBookProgress(step, "Running quality scoring");
-    // TODO: Add chapter scoring logic.
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-
-    step += 1;
-    setBookProgress(step, "Revising manuscript");
-    // TODO: Add revision logic.
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-
+    var response_1 = "";
+    var response_2 = "";
+    try {
+        response_1 = await generateResponse("aria", prompt);
+    } catch (error) {
+        throw new Error(`Failed to generate response: ${error.message}`);
+    }
     step += 1;
     setBookProgress(step, "Publishing final book");
-    // TODO: Add persistence/export logic.
-    await new Promise((resolve) => setTimeout(resolve, 5000));
+    try {
+        response_2 = await generateResponse("bennett", prompt);
+    } catch (error) {
+        throw new Error(`Failed to generate response: ${error.message}`);
+    }
+    console.log("================================");
+    console.log("Response Aria:", response_1);
+    console.log("================================");
+    console.log("Response Bennett:", response_2);
+    console.log("================================");
+    
 
     return {
         ok: true,

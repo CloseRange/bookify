@@ -2,10 +2,11 @@ const {
   startWriteBookJob,
   getWriteBookProgress,
 } = require("../publisher/write_book_jobs");
+
 const { TOTAL_BOOK_STEPS } = require("../publisher/write_book_progress");
 
 async function main() {
-  const prompt = "Write a mystery novel about a disappearing library.";
+  const prompt = "Write a 1 paragraph short story about a cat who learns to play the piano.";
   startWriteBookJob(prompt);
 
   console.log("Started single global write-book job");
@@ -17,6 +18,7 @@ async function main() {
     console.log(
       `[${new Date().toISOString()}] ${job.status} ${job.step}/${TOTAL_BOOK_STEPS} (${percent}%) - ${job.label}`
     );
+
 
     if (job.status === "completed") {
       console.log("Result:", job.result);
