@@ -255,7 +255,72 @@ async function rateBookText(authorProfile, textBlock, ratingPrompt) {
   return Number(match[1]);
 }
 
+const OPENAI_IMAGES_URL = "https://api.openai.com/v1/images/generations";
+// Portrait 2:3 ratio, the standard book cover proportion supported by gpt-image-1.
+const IMAGE_SIZE = "1024x1536";
+
+/**
+ * Generates a tall (2:3, 1024x1536) image from a prompt, using the author's profile as creative context.
+ *
+ * @param {string|number} authorProfile Author id (for example "aria") or author index (for example 0).
+ * @param {string} imagePrompt Description of the image to generate.
+ * @param {string} [outputPath] Optional file path to save the PNG to.
+ * @returns {Promise<Buffer>} PNG image data.
+ */
+async function generateImage(authorProfile, imagePrompt, outputPath) {
+  loadEnvFromFileIfNeeded();
+
+  if (!imagePrompt || typeof imagePrompt !== "string") {
+    throw new Error("imagePrompt must be a non-empty string");
+  }
+
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("Missing OPENAI_API_KEY");
+  }
+
+  const { author, authorMarkdown } = resolveAuthor(authorProfile);
+  const model = process.env.OPENAI_IMAGE_MODEL || "gpt-image-1";
+
+  const prompt = `Author profile (use only as stylistic and thematic inspiration):\n${authorMarkdown}\n\nImage to create:\n${imagePrompt}`;
+
+  const fetchFn = getFetch();
+  const response = await fetchFn(OPENAI_IMAGES_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      prompt,
+      size: IMAGE_SIZE,
+      n: 1,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`OpenAI image API error for ${author.id}: ${response.status} ${errorBody}`);
+  }
+
+  const data = await response.json();
+  const b64 = data?.data?.[0]?.b64_json;
+  if (!b64) {
+    throw new Error("No image returned from model");
+  }
+
+  const buffer = Buffer.from(b64, "base64");
+  if (outputPath) {
+    fs.mkdirSync(path.dirname(path.resolve(outputPath)), { recursive: true });
+    fs.writeFileSync(outputPath, buffer);
+  }
+
+  return buffer;
+}
+
 module.exports = {
   generateResponse,
   rateBookText,
+  generateImage,
 };
