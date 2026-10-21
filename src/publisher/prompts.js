@@ -1,5 +1,4 @@
 
-const ROOT_ENV_PATH = path.join(__dirname, "..", "..", ".env");
 
 // Shared helpers
 const asText = (value) =>
@@ -1000,3 +999,21 @@ FULL MANUSCRIPT:
 ${asText(chapterArray)}
 `;
 }
+
+
+module.exports = {
+  prompt1Plotline,
+  prompt2RatePlotline,
+  prompt3StoryBible,
+  prompt4RateStoryBible,
+  prompt5WriteChapterOutline,
+  prompt6RateChapterOutline,
+  prompt7ImproveChapterOutline,
+  prompt8WriteChapterX,
+  prompt9ReviewChapterX,
+  prompt10ImproveChapterX,
+  prompt11WriteChapterName,
+  prompt12WriteBookName,
+  prompt13MakeBookCover,
+};
+

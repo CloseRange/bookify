@@ -1,9 +1,92 @@
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 
 const OPENAI_API_URL = "https://api.openai.com/v1/responses";
 const AUTHORS_JSON_PATH = path.join(__dirname, "..", "authors", "authors.json");
 const ROOT_ENV_PATH = path.join(__dirname, "..", "..", ".env");
+const CACHE_FILE_PATH = path.join(__dirname, "..", "..", "cache", "author_speak_cache.json");
+
+function getEnvValue(keys) {
+  for (const key of keys) {
+    if (process.env[key] !== undefined) {
+      return process.env[key];
+    }
+  }
+
+  return undefined;
+}
+
+function parseEnvBoolean(rawValue, defaultValue = false) {
+  if (rawValue === undefined || rawValue === null) {
+    return defaultValue;
+  }
+
+  const value = String(rawValue).trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(value)) {
+    return true;
+  }
+  if (["0", "false", "no", "off"].includes(value)) {
+    return false;
+  }
+
+  return defaultValue;
+}
+
+function getCacheConfig() {
+  const cacheResultsRaw = getEnvValue(["CACHE_RESULTS", "cache_results"]);
+  const useCacheRaw = getEnvValue(["USE_CACHE", "use_cache"]);
+
+  return {
+    cacheResults: parseEnvBoolean(cacheResultsRaw, false),
+    useCache: parseEnvBoolean(useCacheRaw, false),
+  };
+}
+
+function readCacheFile() {
+  if (!fs.existsSync(CACHE_FILE_PATH)) {
+    return { version: 1, entries: {} };
+  }
+
+  try {
+    const raw = fs.readFileSync(CACHE_FILE_PATH, "utf8");
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") {
+      return { version: 1, entries: {} };
+    }
+    if (!parsed.entries || typeof parsed.entries !== "object") {
+      return { version: 1, entries: {} };
+    }
+
+    return parsed;
+  } catch (_error) {
+    return { version: 1, entries: {} };
+  }
+}
+
+function writeCacheFile(cacheData) {
+  fs.mkdirSync(path.dirname(CACHE_FILE_PATH), { recursive: true });
+  fs.writeFileSync(CACHE_FILE_PATH, JSON.stringify(cacheData, null, 2));
+}
+
+function buildCacheKey(payload) {
+  const raw = JSON.stringify(payload);
+  return crypto.createHash("sha256").update(raw).digest("hex");
+}
+
+function getCachedEntry(cacheKey) {
+  const cacheData = readCacheFile();
+  return cacheData.entries[cacheKey] || null;
+}
+
+function setCachedEntry(cacheKey, entry) {
+  const cacheData = readCacheFile();
+  cacheData.entries[cacheKey] = {
+    ...entry,
+    cachedAt: new Date().toISOString(),
+  };
+  writeCacheFile(cacheData);
+}
 
 function loadEnvFromFileIfNeeded() {
   if (process.env.OPENAI_API_KEY) {
@@ -137,13 +220,28 @@ async function generateResponse(authorProfile, generationPrompt) {
   }
 
   const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
-  const apiKey = process.env.OPENAI_API_KEY;
+  const { cacheResults, useCache } = getCacheConfig();
 
+  const { author, authorMarkdown } = resolveAuthor(authorProfile);
+  const cacheKey = buildCacheKey({
+    type: "generateResponse",
+    model,
+    authorId: author.id,
+    authorMarkdown,
+    generationPrompt,
+  });
+
+  if (useCache) {
+    const cached = getCachedEntry(cacheKey);
+    if (cached && typeof cached.value === "string") {
+      return cached.value;
+    }
+  }
+
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error("Missing OPENAI_API_KEY");
   }
-
-  const { author, authorMarkdown } = resolveAuthor(authorProfile);
 
   const input = [
     {
@@ -182,6 +280,13 @@ async function generateResponse(authorProfile, generationPrompt) {
     throw new Error("No output_text returned from model");
   }
 
+  if (cacheResults) {
+    setCachedEntry(cacheKey, {
+      type: "string",
+      value: output.trim(),
+    });
+  }
+
   return output.trim();
 }
 
@@ -206,13 +311,29 @@ async function rateBookText(authorProfile, textBlock, ratingPrompt) {
   }
 
   const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
-  const apiKey = process.env.OPENAI_API_KEY;
+  const { cacheResults, useCache } = getCacheConfig();
 
+  const { author, authorMarkdown } = resolveAuthor(authorProfile);
+  const cacheKey = buildCacheKey({
+    type: "rateBookText",
+    model,
+    authorId: author.id,
+    authorMarkdown,
+    textBlock,
+    ratingPrompt,
+  });
+
+  if (useCache) {
+    const cached = getCachedEntry(cacheKey);
+    if (cached && typeof cached.value === "number") {
+      return cached.value;
+    }
+  }
+
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error("Missing OPENAI_API_KEY");
   }
-
-  const { author, authorMarkdown } = resolveAuthor(authorProfile);
 
   const input = [
     {
@@ -252,7 +373,16 @@ async function rateBookText(authorProfile, textBlock, ratingPrompt) {
     throw new Error(`Model did not return a valid score: ${output}`);
   }
 
-  return Number(match[1]);
+  const score = Number(match[1]);
+
+  if (cacheResults) {
+    setCachedEntry(cacheKey, {
+      type: "number",
+      value: score,
+    });
+  }
+
+  return score;
 }
 
 const OPENAI_IMAGES_URL = "https://api.openai.com/v1/images/generations";
@@ -274,15 +404,36 @@ async function generateImage(authorProfile, imagePrompt, outputPath) {
     throw new Error("imagePrompt must be a non-empty string");
   }
 
+  const { author, authorMarkdown } = resolveAuthor(authorProfile);
+  const model = process.env.OPENAI_IMAGE_MODEL || "gpt-image-1";
+  const { cacheResults, useCache } = getCacheConfig();
+
+  const prompt = `Author profile (use only as stylistic and thematic inspiration):\n${authorMarkdown}\n\nImage to create:\n${imagePrompt}`;
+  const cacheKey = buildCacheKey({
+    type: "generateImage",
+    model,
+    size: IMAGE_SIZE,
+    authorId: author.id,
+    authorMarkdown,
+    imagePrompt,
+  });
+
+  if (useCache) {
+    const cached = getCachedEntry(cacheKey);
+    if (cached && typeof cached.value === "string") {
+      const cachedBuffer = Buffer.from(cached.value, "base64");
+      if (outputPath) {
+        fs.mkdirSync(path.dirname(path.resolve(outputPath)), { recursive: true });
+        fs.writeFileSync(outputPath, cachedBuffer);
+      }
+      return cachedBuffer;
+    }
+  }
+
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error("Missing OPENAI_API_KEY");
   }
-
-  const { author, authorMarkdown } = resolveAuthor(authorProfile);
-  const model = process.env.OPENAI_IMAGE_MODEL || "gpt-image-1";
-
-  const prompt = `Author profile (use only as stylistic and thematic inspiration):\n${authorMarkdown}\n\nImage to create:\n${imagePrompt}`;
 
   const fetchFn = getFetch();
   const response = await fetchFn(OPENAI_IMAGES_URL, {
@@ -311,6 +462,14 @@ async function generateImage(authorProfile, imagePrompt, outputPath) {
   }
 
   const buffer = Buffer.from(b64, "base64");
+
+  if (cacheResults) {
+    setCachedEntry(cacheKey, {
+      type: "base64",
+      value: b64,
+    });
+  }
+
   if (outputPath) {
     fs.mkdirSync(path.dirname(path.resolve(outputPath)), { recursive: true });
     fs.writeFileSync(outputPath, buffer);

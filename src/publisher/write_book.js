@@ -1,35 +1,59 @@
 
 const { setBookProgress } = require("./write_book_progress");
 
-const { generateResponse } = require("./author_speak");
+const { generateResponse, rateBookText } = require("./author_speak");
 
-async function writeBook(prompt) {
+const prompts = require("./prompts");
+
+async function buildResponseList(step, authors, prompt) {
+    let responses = [];
+    for (let i = 0; i < authors.length; i++) {
+        const author = authors[i];
+        setBookProgress(step + i + 1, `Generating response for ${author.name}`);
+        const response = await generateResponse(author.id, prompt);
+        responses.push(response);
+    }
+    return responses;
+}
+
+
+async function writeBook(bookDescription) {
     let step = 0;
 
-    step += 1;
-    setBookProgress(step, "Validating input");
-    if (!prompt || typeof prompt !== "string") {
+    const authors = require("../authors/authors.json");
+
+    setBookProgress(++step, "Validating input");
+    if (!bookDescription || typeof bookDescription !== "string") {
         throw new Error("prompt must be a non-empty string");
     }
-    var response_1 = "";
-    var response_2 = "";
+    let prompt = "";
     try {
-        response_1 = await generateResponse("aria", prompt);
+        prompt = prompts.prompt1Plotline(bookDescription);
+        let plotlines = await buildResponseList(step, authors, prompt);
+        step += authors.length;
+
+        let scores = [];
+        for(let i = 0; i < authors.length; i++) {
+            let score = 0;
+            for(let j = 0; j < authors.length; j++) {
+                setBookProgress(++step, `Ranking Plotline: ${authors[i].name} > ${authors[j].name}`);
+                if(i == j) continue;
+                prompt = prompts.prompt2RatePlotline(bookDescription, plotlines[j]);
+                const response = await rateBookText(authors[i].id, prompt);
+                score += parseInt(response) || 0;
+            }
+            scores.push(score);
+        }
+        console.log(scores);
+
+        
+
+        
+
     } catch (error) {
-        throw new Error(`Failed to generate response: ${error.message}`);
+        throw new Error(`Failed to generate book: ${error.message}`);
     }
-    step += 1;
-    setBookProgress(step, "Publishing final book");
-    try {
-        response_2 = await generateResponse("bennett", prompt);
-    } catch (error) {
-        throw new Error(`Failed to generate response: ${error.message}`);
-    }
-    console.log("================================");
-    console.log("Response Aria:", response_1);
-    console.log("================================");
-    console.log("Response Bennett:", response_2);
-    console.log("================================");
+
     
 
     return {
