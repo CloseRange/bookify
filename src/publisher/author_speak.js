@@ -247,11 +247,11 @@ async function generateResponse(authorProfile, generationPrompt) {
     {
       role: "system",
       content:
-        "You are an expert ghostwriter. Follow the author profile markdown closely when generating output.",
+        authorMarkdown,
     },
     {
       role: "user",
-      content: `Author id: ${author.id}\n\nAuthor profile markdown:\n${authorMarkdown}\n\nRequest:\n${generationPrompt}`,
+      content: `Author id: ${author.id}\n\nRequest:\n${generationPrompt}`,
     },
   ];
 
