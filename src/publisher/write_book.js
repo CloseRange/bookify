@@ -32,37 +32,34 @@ async function writeBook(bookDescription) {
         let plotlines = await buildResponseList(step, authors, prompt, "Generating plotline");
         step += authors.length;
 
-        let scores = [];
+        // scores[j] is the total of the ratings author j received from every other author
+        let scores = new Array(authors.length).fill(0);
         for(let i = 0; i < authors.length; i++) {
-            let score = 0;
             for(let j = 0; j < authors.length; j++) {
                 setBookProgress(++step, `Ranking Plotline: ${authors[i].name} > ${authors[j].name}`);
                 if(i == j) continue;
                 const ratingPrompt = prompts.prompt2RatePlotline(bookDescription, plotlines[j]);
                 const response = await rateBookText(authors[i].id, plotlines[j], ratingPrompt);
-                score += Number(response) || 0;
+                scores[j] += Number(response) || 0;
             }
-            scores.push(score);
         }
         const mainPlotlineIndex = scores.indexOf(Math.max(...scores));
         const mainPlotline = plotlines[mainPlotlineIndex];
-        prompt = prompts.prompt3StoryBible(bookDescription, mainPlotline);
+        prompt = prompts.prompt3StoryBible(mainPlotline);
 
         let storyBibles = await buildResponseList(step, authors, prompt, "Generating story bible");
         step += authors.length;
 
         
-        scores = [];
+        scores = new Array(authors.length).fill(0);
         for(let i = 0; i < authors.length; i++) {
-            let score = 0;
             for(let j = 0; j < authors.length; j++) {
                 setBookProgress(++step, `Ranking Story Bible: ${authors[i].name} > ${authors[j].name}`);
                 if(i == j) continue;
-                const ratingPrompt = prompts.prompt2RateStoryBible(bookDescription, storyBibles[j]);
+                const ratingPrompt = prompts.prompt4RateStoryBible(bookDescription, mainPlotline, storyBibles[j]);
                 const response = await rateBookText(authors[i].id, storyBibles[j], ratingPrompt);
-                score += Number(response) || 0;
+                scores[j] += Number(response) || 0;
             }
-            scores.push(score);
         }
         const mainStoryBibleIndex = scores.indexOf(Math.max(...scores));
         const mainStoryBible = storyBibles[mainStoryBibleIndex];
