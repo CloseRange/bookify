@@ -38,12 +38,19 @@ async function writeBook(bookDescription) {
             for(let j = 0; j < authors.length; j++) {
                 setBookProgress(++step, `Ranking Plotline: ${authors[i].name} > ${authors[j].name}`);
                 if(i == j) continue;
-                prompt = prompts.prompt2RatePlotline(bookDescription, plotlines[j]);
-                const response = await rateBookText(authors[i].id, prompt);
-                score += parseInt(response) || 0;
+                const ratingPrompt = prompts.prompt2RatePlotline(bookDescription, plotlines[j]);
+                const response = await rateBookText(authors[i].id, plotlines[j], ratingPrompt);
+                score += Number(response) || 0;
             }
             scores.push(score);
         }
+        const mainPlotlineIndex = scores.indexOf(Math.max(...scores));
+        const mainPlotline = plotlines[mainPlotlineIndex];
+        prompt = prompts.prompt3StoryBible(bookDescription, mainPlotline);
+
+        let sstoryBibles = await buildResponseList(step, authors, prompt);
+        step += authors.length;
+
         console.log(scores);
 
         

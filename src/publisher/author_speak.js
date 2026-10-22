@@ -74,15 +74,50 @@ function buildCacheKey(payload) {
   return crypto.createHash("sha256").update(raw).digest("hex");
 }
 
-function getCachedEntry(cacheKey) {
+function getCachedEntry(cacheKey, bucketKey) {
   const cacheData = readCacheFile();
-  return cacheData.entries[cacheKey] || null;
+  const exact = cacheData.entries[cacheKey] || null;
+  if (exact) {
+    return exact;
+  }
+
+  if (!bucketKey) {
+    return null;
+  }
+
+  let latest = null;
+  for (const entry of Object.values(cacheData.entries)) {
+    if (!entry || entry.bucketKey !== bucketKey) {
+      continue;
+    }
+
+    if (!latest) {
+      latest = entry;
+      continue;
+    }
+
+    if ((entry.cachedAt || "") > (latest.cachedAt || "")) {
+      latest = entry;
+    }
+  }
+
+  return latest;
 }
 
-function setCachedEntry(cacheKey, entry) {
+function setCachedEntry(cacheKey, entry, bucketKey) {
   const cacheData = readCacheFile();
+
+  if (bucketKey) {
+    for (const [key, value] of Object.entries(cacheData.entries)) {
+      if (value && value.bucketKey === bucketKey) {
+        delete cacheData.entries[key];
+      }
+    }
+  }
+
   cacheData.entries[cacheKey] = {
     ...entry,
+    bucketKey: bucketKey || null,
     cachedAt: new Date().toISOString(),
   };
   writeCacheFile(cacheData);
@@ -223,6 +258,7 @@ async function generateResponse(authorProfile, generationPrompt) {
   const { cacheResults, useCache } = getCacheConfig();
 
   const { author, authorMarkdown } = resolveAuthor(authorProfile);
+  const bucketKey = `generateResponse:${model}:${author.id}`;
   const cacheKey = buildCacheKey({
     type: "generateResponse",
     model,
@@ -232,7 +268,7 @@ async function generateResponse(authorProfile, generationPrompt) {
   });
 
   if (useCache) {
-    const cached = getCachedEntry(cacheKey);
+    const cached = getCachedEntry(cacheKey, bucketKey);
     if (cached && typeof cached.value === "string") {
       return cached.value;
     }
@@ -284,7 +320,7 @@ async function generateResponse(authorProfile, generationPrompt) {
     setCachedEntry(cacheKey, {
       type: "string",
       value: output.trim(),
-    });
+    }, bucketKey);
   }
 
   return output.trim();
@@ -314,6 +350,7 @@ async function rateBookText(authorProfile, textBlock, ratingPrompt) {
   const { cacheResults, useCache } = getCacheConfig();
 
   const { author, authorMarkdown } = resolveAuthor(authorProfile);
+  const bucketKey = `rateBookText:${model}:${author.id}`;
   const cacheKey = buildCacheKey({
     type: "rateBookText",
     model,
@@ -324,7 +361,7 @@ async function rateBookText(authorProfile, textBlock, ratingPrompt) {
   });
 
   if (useCache) {
-    const cached = getCachedEntry(cacheKey);
+    const cached = getCachedEntry(cacheKey, bucketKey);
     if (cached && typeof cached.value === "number") {
       return cached.value;
     }
@@ -379,7 +416,7 @@ async function rateBookText(authorProfile, textBlock, ratingPrompt) {
     setCachedEntry(cacheKey, {
       type: "number",
       value: score,
-    });
+    }, bucketKey);
   }
 
   return score;
@@ -409,6 +446,7 @@ async function generateImage(authorProfile, imagePrompt, outputPath) {
   const { cacheResults, useCache } = getCacheConfig();
 
   const prompt = `Author profile (use only as stylistic and thematic inspiration):\n${authorMarkdown}\n\nImage to create:\n${imagePrompt}`;
+  const bucketKey = `generateImage:${model}:${IMAGE_SIZE}:${author.id}`;
   const cacheKey = buildCacheKey({
     type: "generateImage",
     model,
@@ -419,7 +457,7 @@ async function generateImage(authorProfile, imagePrompt, outputPath) {
   });
 
   if (useCache) {
-    const cached = getCachedEntry(cacheKey);
+    const cached = getCachedEntry(cacheKey, bucketKey);
     if (cached && typeof cached.value === "string") {
       const cachedBuffer = Buffer.from(cached.value, "base64");
       if (outputPath) {
@@ -467,7 +505,7 @@ async function generateImage(authorProfile, imagePrompt, outputPath) {
     setCachedEntry(cacheKey, {
       type: "base64",
       value: b64,
-    });
+    }, bucketKey);
   }
 
   if (outputPath) {

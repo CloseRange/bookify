@@ -6,10 +6,10 @@ const {
 const { TOTAL_BOOK_STEPS } = require("../publisher/write_book_progress");
 
 async function main() {
-  const prompt = "Write a 1 paragraph short story about a cat who learns to play the piano.";
+  const prompt = "Write a book about a magic cat";
   startWriteBookJob(prompt);
 
-  console.log("Started single global write-book job");
+  console.log("Started single global write-book job"); 
 
   const timer = setInterval(() => {
     const job = getWriteBookProgress();

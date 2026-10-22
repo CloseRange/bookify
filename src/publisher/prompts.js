@@ -21,48 +21,43 @@ const chapterCount = () => {
 function prompt1Plotline(description) {
   return `
 TASK:
-Transform the director's story concept into a cohesive, captivating
-three-paragraph plotline covering the entire book.
+Create an original plot concept for a full-length book based on
+the director's description.
 
-STORY REQUIREMENTS:
-- Preserve the director's core premise, genre, themes, and intentions.
-- Establish a compelling protagonist with a clear desire, flaw, and
-  internal conflict.
-- Introduce a meaningful central conflict and an opposing force.
-- Create strong cause-and-effect relationships between major events.
-- Include escalating stakes, difficult choices, and meaningful consequences.
-- Avoid predictable developments, generic villains, and convenient solutions.
-- Ensure character decisions drive the plot rather than coincidences.
-- Give the story an emotional and thematic throughline.
-- Develop an ending that feels earned, satisfying, and consistent with
-  the story's genre and intended tone.
+CREATIVE DIRECTION:
+Interpret the premise through your own artistic identity,
+imagination, preferences, and storytelling instincts.
 
-STRUCTURE:
+You have creative freedom to determine:
+- The characters and their motivations.
+- The setting and atmosphere.
+- The central events and narrative direction.
+- The nature of any conflicts or challenges.
+- The structure, pacing, and emotional tone.
+- The ending and its significance.
 
-PARAGRAPH 1 — BEGINNING:
-Introduce the protagonist, setting, ordinary circumstances, internal
-struggle, inciting incident, and the decision that launches the story.
+There is no required plot formula. A story may be intimate,
+adventurous, comedic, suspenseful, experimental, or anything
+else appropriate to the premise.
 
-PARAGRAPH 2 — MIDDLE:
-Describe the major complications, evolving relationships, escalating
-conflicts, reversals, midpoint revelation, and the protagonist's
-increasing personal sacrifices.
+You may use conventional storytelling techniques or explore
+unusual possibilities. Choose what genuinely interests you
+as an author.
 
-PARAGRAPH 3 — END:
-Describe the crisis, darkest moment, climactic decisions,
-final confrontation, resolution of the central conflict, and
-the protagonist's transformation.
-
-IMPORTANT:
-- The plotline is an outline, not finished prose.
-- Make it detailed enough to guide a full-length novel.
-- Commit to concrete story events rather than vague possibilities.
-- Surprise the reader without sacrificing logic.
-- Do not introduce elements that contradict the director's description.
+REQUIREMENTS:
+- Preserve the director's explicit requirements and intentions.
+- Develop a specific, original story rather than a generic premise.
+- Describe what actually happens, including how the story ends.
+- Keep the concept coherent and suitable for development into
+  a full-length book.
+- Allow the story's natural direction to determine its structure.
+- Avoid relying automatically on familiar narrative formulas.
 
 OUTPUT:
-Exactly three substantial paragraphs.
-No headings, commentary, introductions, or explanations.
+Write a detailed synopsis of your proposed book.
+
+Use as many paragraphs as naturally needed to communicate
+the story. Do not include headings, explanations, or commentary.
 
 DIRECTOR'S DESCRIPTION:
 ${description}
