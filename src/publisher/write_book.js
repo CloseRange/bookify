@@ -5,11 +5,11 @@ const { generateResponse, rateBookText } = require("./author_speak");
 
 const prompts = require("./prompts");
 
-async function buildResponseList(step, authors, prompt) {
+async function buildResponseList(step, authors, prompt, label="Generating response") {
     let responses = [];
     for (let i = 0; i < authors.length; i++) {
         const author = authors[i];
-        setBookProgress(step + i + 1, `Generating response for ${author.name}`);
+        setBookProgress(step + i + 1, `${label} for ${author.name}`);
         const response = await generateResponse(author.id, prompt);
         responses.push(response);
     }
@@ -29,7 +29,7 @@ async function writeBook(bookDescription) {
     let prompt = "";
     try {
         prompt = prompts.prompt1Plotline(bookDescription);
-        let plotlines = await buildResponseList(step, authors, prompt);
+        let plotlines = await buildResponseList(step, authors, prompt, "Generating plotline");
         step += authors.length;
 
         let scores = [];
@@ -48,10 +48,28 @@ async function writeBook(bookDescription) {
         const mainPlotline = plotlines[mainPlotlineIndex];
         prompt = prompts.prompt3StoryBible(bookDescription, mainPlotline);
 
-        let sstoryBibles = await buildResponseList(step, authors, prompt);
+        let storyBibles = await buildResponseList(step, authors, prompt, "Generating story bible");
         step += authors.length;
 
-        console.log(scores);
+        
+        scores = [];
+        for(let i = 0; i < authors.length; i++) {
+            let score = 0;
+            for(let j = 0; j < authors.length; j++) {
+                setBookProgress(++step, `Ranking Story Bible: ${authors[i].name} > ${authors[j].name}`);
+                if(i == j) continue;
+                const ratingPrompt = prompts.prompt2RateStoryBible(bookDescription, storyBibles[j]);
+                const response = await rateBookText(authors[i].id, storyBibles[j], ratingPrompt);
+                score += Number(response) || 0;
+            }
+            scores.push(score);
+        }
+        const mainStoryBibleIndex = scores.indexOf(Math.max(...scores));
+        const mainStoryBible = storyBibles[mainStoryBibleIndex];
+        const mainAuthor = authors[mainStoryBibleIndex];
+
+        
+
 
         
 
