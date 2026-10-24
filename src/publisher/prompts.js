@@ -4,6 +4,19 @@
 const asText = (value) =>
   typeof value === "string" ? value : JSON.stringify(value ?? [], null, 2);
 
+const truncatePromptText = (value, maxChars = 4000) => {
+  const text = typeof value === "string" ? value : asText(value ?? "");
+  if (!text) {
+    return "";
+  }
+
+  if (text.length <= maxChars) {
+    return text.trim();
+  }
+
+  return `${text.slice(0, maxChars - 140).trim()}\n...[TRUNCATED for prompt length limits]`;
+};
+
 const chapterLabel = (chapterNumber) => chapterNumber + 1;
 
 const chapterCount = () => {
@@ -591,7 +604,9 @@ function prompt8WriteChapterX(
   bible,
   chapterOutline,
   chapterNumber,
-  lastChapter
+  lastChapter,
+  minPages=5,
+  maxPages=10
 ) {
   const number = chapterLabel(chapterNumber);
   const words = Number(process.env.CHAPTER_WORDS) || 3000;
@@ -599,6 +614,7 @@ function prompt8WriteChapterX(
   return `
 Write Chapter ${number} of the novel as polished literary fiction
 appropriate to its established genre and intended audience.
+The chapter should be between ${minPages} and ${maxPages} pages in length, with a target of approximately 300 words per page.
 
 You are writing the actual book, not an outline or summary.
 
@@ -929,6 +945,9 @@ function prompt13MakeBookCover(
   authorsName,
   chapterArray
 ) {
+  const compactBible = truncatePromptText(bible, 3500);
+  const compactManuscript = truncatePromptText(asText(chapterArray), 5000);
+
   return `
 Create a professional, visually striking illustrated cover
 for the following novel.
@@ -982,7 +1001,7 @@ Generate the final cover image.
 Do not output a written explanation.
 
 STORY BIBLE:
-${bible}
+${compactBible}
 
 BOOK TITLE:
 ${title}
@@ -991,7 +1010,7 @@ AUTHOR NAME:
 ${authorsName}
 
 FULL MANUSCRIPT:
-${asText(chapterArray)}
+${compactManuscript}
 `;
 }
 

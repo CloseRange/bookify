@@ -190,6 +190,19 @@ function extractResponseText(data) {
   return chunks.join("\n").trim();
 }
 
+function truncateForOpenAiPrompt(value, maxChars = 25000) {
+  const text = typeof value === "string" ? value : String(value ?? "");
+  if (!text) {
+    return "";
+  }
+
+  if (text.length <= maxChars) {
+    return text;
+  }
+
+  return `${text.slice(0, maxChars - 140).trim()}\n...[TRUNCATED for API length limits]`;
+}
+
 function loadAuthors() {
   const raw = fs.readFileSync(AUTHORS_JSON_PATH, "utf8");
   const authors = JSON.parse(raw);
@@ -445,16 +458,21 @@ async function generateImage(authorProfile, imagePrompt, outputPath) {
   const model = process.env.OPENAI_IMAGE_MODEL || "gpt-image-1";
   const { cacheResults, useCache } = getCacheConfig();
 
-  const prompt = `Author profile (use only as stylistic and thematic inspiration):\n${authorMarkdown}\n\nImage to create:\n${imagePrompt}`;
+  const safeAuthorMarkdown = truncateForOpenAiPrompt(authorMarkdown, 4000);
+  const safeImagePrompt = truncateForOpenAiPrompt(imagePrompt, 22000);
+  const prompt = `Author profile (use only as stylistic and thematic inspiration):\n${safeAuthorMarkdown}\n\nImage to create:\n${safeImagePrompt}`;
   const bucketKey = `generateImage:${model}:${IMAGE_SIZE}:${author.id}`;
   const cacheKey = buildCacheKey({
     type: "generateImage",
     model,
     size: IMAGE_SIZE,
     authorId: author.id,
-    authorMarkdown,
-    imagePrompt,
+    authorMarkdown: safeAuthorMarkdown,
+    imagePrompt: safeImagePrompt,
   });
+
+  const maxApiPromptLength = 32000;
+  const finalPrompt = prompt.length <= maxApiPromptLength ? prompt : truncateForOpenAiPrompt(prompt, maxApiPromptLength);
 
   if (useCache) {
     const cached = getCachedEntry(cacheKey, bucketKey);
@@ -482,7 +500,7 @@ async function generateImage(authorProfile, imagePrompt, outputPath) {
     },
     body: JSON.stringify({
       model,
-      prompt,
+      prompt: finalPrompt,
       size: IMAGE_SIZE,
       n: 1,
     }),
