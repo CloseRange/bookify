@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bookify Library</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="glow glow-a"></div>
+    <div class="glow glow-b"></div>
+
+    <main class="card wide">
+      <nav class="nav">
+        <a href="index.html">Create</a>
+        <a href="books.html" class="active">Library</a>
+      </nav>
+
+      <section id="library">
+        <header>
+          <div class="logo">📚</div>
+          <h1>Library</h1>
+          <p class="subtitle">Pick a book to start reading.</p>
+        </header>
+        <div id="book-grid" class="book-grid"></div>
+        <p id="empty" class="subtitle hidden">No books yet.</p>
+      </section>
+
+      <section id="reader" class="hidden">
+        <button id="back" class="link-btn" type="button">← Back to library</button>
+        <h1 id="book-title"></h1>
+        <p id="book-author" class="subtitle"></p>
+        <p id="book-desc" class="book-desc"></p>
+
+        <div class="reader-layout">
+          <ol id="toc" class="toc"></ol>
+          <article id="chapter" class="chapter"></article>
+        </div>
+
+        <div class="chapter-nav">
+          <button id="prev" class="secondary" type="button">← Previous</button>
+          <button id="next" class="secondary" type="button">Next →</button>
+        </div>
+      </section>
+    </main>
+
+    <script src="books.js"></script>
+  </body>
+</html>
