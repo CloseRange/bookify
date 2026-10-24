@@ -455,7 +455,12 @@ async function generateImage(authorProfile, imagePrompt, outputPath) {
   }
 
   const { author, authorMarkdown } = resolveAuthor(authorProfile);
-  const model = process.env.OPENAI_IMAGE_MODEL || "gpt-image-1";
+  const model = (process.env.OPENAI_IMAGE_MODEL || "").trim();
+  if (!model) {
+    throw new Error(
+      "OPENAI_IMAGE_MODEL is not configured. Set it to a valid image-capable model (for example, gpt-image-1) and make sure your OpenAI account has image generation enabled."
+    );
+  }
   const { cacheResults, useCache } = getCacheConfig();
 
   const safeAuthorMarkdown = truncateForOpenAiPrompt(authorMarkdown, 4000);
@@ -508,6 +513,13 @@ async function generateImage(authorProfile, imagePrompt, outputPath) {
 
   if (!response.ok) {
     const errorBody = await response.text();
+    const message = JSON.parse(errorBody || '{}')?.error?.message || errorBody || 'Unknown image generation error';
+    const isInvalidModel = /model.*(does not exist|invalid_value|not found)|invalid.*model/i.test(message);
+    if (isInvalidModel) {
+      throw new Error(
+        `OpenAI image API error for ${author.id}: the configured model "${model}" is not available to this account. Set OPENAI_IMAGE_MODEL to a valid image-capable model and confirm image generation is enabled for your API key/account.`
+      );
+    }
     throw new Error(`OpenAI image API error for ${author.id}: ${response.status} ${errorBody}`);
   }
 

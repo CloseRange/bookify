@@ -108,6 +108,7 @@ function addChapter(uuid, number, title, content) {
 	}
 
 	meta.chapters.push({
+		number,
 		title,
 		wordCount,
 		file,
@@ -137,6 +138,34 @@ function saveCoverImage(uuid, imageBuffer, fileName = "cover.png") {
 	return fileName;
 }
 
+function writeFullBook(uuid) {
+	const { metaPath, meta } = readMeta(uuid);
+	const bookPath = path.dirname(metaPath);
+	const title = meta.title || "Untitled Book";
+	const chapters = Array.isArray(meta.chapters) ? meta.chapters : [];
+
+	const fullBookPath = path.join(bookPath, "full_book.md");
+	if (chapters.length === 0) {
+		fs.writeFileSync(fullBookPath, `# ${title}\n\n`);
+		return fullBookPath;
+	}
+
+	const sections = [`# ${title}`];
+	for (const chapter of chapters) {
+		const chapterNumber = Number(chapter.number ?? 1);
+		const chapterFile = chapter.file || `${String(chapterNumber).padStart(3, "0")}.md`;
+		const fullFilePath = path.join(bookPath, chapterFile);
+		const chapterContent = fs.existsSync(fullFilePath)
+			? fs.readFileSync(fullFilePath, "utf8").trim()
+			: "";
+		const chapterTitle = chapter.title || `Chapter ${chapterNumber}`;
+		sections.push(`\n## ${chapterTitle}\n\n${chapterContent}`);
+	}
+
+	fs.writeFileSync(fullBookPath, sections.join("\n\n"));
+	return fullBookPath;
+}
+
 module.exports = {
 	generateUuid,
 	makeBookFolder,
@@ -146,4 +175,5 @@ module.exports = {
 	setCoverImage,
 	addChapter,
 	saveCoverImage,
+	writeFullBook,
 };

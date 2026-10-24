@@ -131,6 +131,7 @@ async function writeBook(bookDescription) {
         
         bookIO.setTitle(UUID, bookName);
         bookIO.setAuthor(UUID, mainAuthor.name);
+        bookIO.writeFullBook(UUID);
 
         const coverBible = mainStoryBible.length > 3500
             ? `${mainStoryBible.slice(0, 3500).trim()}\n...[TRUNCATED for cover prompt length limits]`
@@ -144,8 +145,14 @@ async function writeBook(bookDescription) {
 
         prompt = prompts.prompt13MakeBookCover(coverBible, bookName, mainAuthor.name, coverChapters);
         setBookProgress(++step, "Generating book cover image");
-        const coverImageBuffer = await generateImage(mainAuthor.id, prompt);
-        bookIO.saveCoverImage(UUID, coverImageBuffer, "cover.png");
+        try {
+            const coverImageBuffer = await generateImage(mainAuthor.id, prompt);
+            bookIO.saveCoverImage(UUID, coverImageBuffer, "cover.png");
+        } catch (coverError) {
+            const reason = coverError && coverError.message ? coverError.message : String(coverError);
+            setBookProgress(++step, `Cover image skipped: ${reason}`);
+            bookIO.setCoverImage(UUID, "");
+        }
         
 
     } catch (error) {
