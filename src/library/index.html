@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bookify Library</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="site-header">
+        <div class="brand-lockup">
+          <span class="brand-mark">B</span>
+          <span class="brand-text">Bookify Library</span>
+        </div>
+      </header>
+
+      <main>
+        <section class="hero">
+          <img
+            class="hero-banner"
+            src="res/banner.png"
+            alt="Bookify banner"
+          />
+          <div class="hero-overlay">
+            <p class="eyebrow">Curated stories</p>
+            <h1>Discover your next unforgettable read</h1>
+          </div>
+        </section>
+
+        <section class="books-section">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Library catalog</p>
+              <h2>Books</h2>
+            </div>
+          </div>
+          <div class="books-grid" id="booksGrid"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="../authors/authors.js"></script>
+    <script src="../books/meta.js"></script>
+    <script src="../books/catalog.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

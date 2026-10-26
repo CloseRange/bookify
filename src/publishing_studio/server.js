@@ -11,11 +11,44 @@ const { TOTAL_BOOK_STEPS } = require("../publisher/write_book_progress");
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, "public");
 const BOOKS_DIR = path.join(__dirname, "..", "books");
+const LIBRARY_DIR = path.join(__dirname, "..", "library");
+const AUTHORS_DIR = path.join(__dirname, "..", "authors");
 const MIME = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".md": "text/markdown; charset=utf-8",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".svg": "image/svg+xml",
 };
+
+function sendStaticFile(res, rootDir, requestedPath) {
+  const normalized = path
+    .normalize(requestedPath)
+    .replace(/^[/\\]+/, "")
+    .replace(/^([.][.][/\\])+/, "");
+  const filePath = path.join(rootDir, normalized);
+  if (!filePath.startsWith(rootDir)) {
+    res.writeHead(403);
+    res.end("Forbidden");
+    return;
+  }
+  fs.readFile(filePath, (err, content) => {
+    if (err) {
+      res.writeHead(404);
+      res.end("Not found");
+      return;
+    }
+    res.writeHead(200, {
+      "Content-Type": MIME[path.extname(filePath).toLowerCase()] || "application/octet-stream",
+    });
+    res.end(content);
+  });
+}
 
 function sendJson(res, status, body) {
   res.writeHead(status, { "Content-Type": "application/json" });
@@ -97,22 +130,26 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  const requested = url.pathname === "/" ? "/index.html" : url.pathname;
-  const filePath = path.join(PUBLIC_DIR, path.normalize(requested));
-  if (!filePath.startsWith(PUBLIC_DIR)) {
-    res.writeHead(403);
-    return res.end("Forbidden");
+  if (req.method === "GET" && (url.pathname === "/library" || url.pathname.startsWith("/library/"))) {
+    const requested =
+      url.pathname === "/library" || url.pathname === "/library/"
+        ? "index.html"
+        : url.pathname.slice("/library/".length);
+    return sendStaticFile(res, LIBRARY_DIR, requested);
   }
-  fs.readFile(filePath, (err, content) => {
-    if (err) {
-      res.writeHead(404);
-      return res.end("Not found");
-    }
-    res.writeHead(200, {
-      "Content-Type": MIME[path.extname(filePath)] || "application/octet-stream",
-    });
-    res.end(content);
-  });
+
+  if (req.method === "GET" && url.pathname.startsWith("/books/")) {
+    const requested = url.pathname.slice("/books/".length);
+    return sendStaticFile(res, BOOKS_DIR, requested);
+  }
+
+  if (req.method === "GET" && url.pathname.startsWith("/authors/")) {
+    const requested = url.pathname.slice("/authors/".length);
+    return sendStaticFile(res, AUTHORS_DIR, requested);
+  }
+
+  const requested = url.pathname === "/" ? "/index.html" : url.pathname;
+  return sendStaticFile(res, PUBLIC_DIR, requested);
 });
 
 server.listen(PORT, () => {

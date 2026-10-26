@@ -1,4 +1,9 @@
-const TOTAL_BOOK_STEPS = 6;
+// Current pipeline total for 8 authors and 10 chapters:
+// 1 (input) + 8 (plotlines) + 64 (plotline ranking) + 8 (story bibles)
+// + 64 (story bible ranking) + 1 (outline) + 7 (outline reviews)
+// + 1 (outline revision) + 30 (chapter write+memory+title) + 1 (book name)
+// + 1 (description) + 1 (cover request) = 187
+const TOTAL_BOOK_STEPS = 187;
 
 let writeBookRunning = false;
 let writeBookProgress = {

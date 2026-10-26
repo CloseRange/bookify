@@ -2,6 +2,10 @@ const fs = require("fs");
 const path = require("path");
 const { randomUUID } = require("crypto");
 
+function enforceStoryStateValidation() {
+	return process.env.BOOKIFY_ENFORCE_STORY_STATE === "1";
+}
+
 function generateUuid() {
 	return randomUUID();
 }
@@ -25,7 +29,11 @@ function makeBookFolder() {
 	const meta = {
 		title: "",
 		author: "",
-		descritpion: "",
+		originalDescription: "",
+		bookDescription: "",
+		description: "",
+		storyBible: "",
+		chapterOutline: "",
 		coverImage: "",
 		chapters: [],
 	};
@@ -70,7 +78,34 @@ function setTitle(uuid, title) {
 
 function setDescription(uuid, description) {
 	const { metaPath, meta } = readMeta(uuid);
-	meta.descritpion = description;
+	meta.description = description || "";
+	delete meta.descritpion;
+	writeMeta(metaPath, meta);
+}
+
+function setBookDescription(uuid, bookDescription) {
+	const { metaPath, meta } = readMeta(uuid);
+	meta.originalDescription = bookDescription || "";
+	meta.bookDescription = bookDescription || "";
+	writeMeta(metaPath, meta);
+}
+
+function setOriginalDescription(uuid, originalDescription) {
+	const { metaPath, meta } = readMeta(uuid);
+	meta.originalDescription = originalDescription || "";
+	meta.bookDescription = originalDescription || "";
+	writeMeta(metaPath, meta);
+}
+
+function setStoryBible(uuid, storyBible) {
+	const { metaPath, meta } = readMeta(uuid);
+	meta.storyBible = storyBible || "";
+	writeMeta(metaPath, meta);
+}
+
+function setChapterOutline(uuid, chapterOutline) {
+	const { metaPath, meta } = readMeta(uuid);
+	meta.chapterOutline = chapterOutline || "";
 	writeMeta(metaPath, meta);
 }
 
@@ -80,7 +115,7 @@ function setCoverImage(uuid, coverImage) {
 	writeMeta(metaPath, meta);
 }
 
-function addChapter(uuid, number, title, content) {
+function addChapter(uuid, number, title, content, storyState, validation, diagnostics) {
 	if (!Number.isInteger(number) || number < 1) {
 		throw new Error("number must be a positive integer");
 	}
@@ -94,26 +129,59 @@ function addChapter(uuid, number, title, content) {
 	}
 
 	const { metaPath, meta } = readMeta(uuid);
+	if (!Array.isArray(meta.chapters)) {
+		meta.chapters = [];
+	}
+	if (meta.chapters.length !== number - 1) {
+		throw new Error("Accepted chapters must be sequential");
+	}
+	if (storyState && storyState.chapters?.at(-1)?.number !== number) {
+		throw new Error("Story state and chapter number do not align");
+	}
+	if (storyState) {
+		if (enforceStoryStateValidation()) {
+			require('./narrative').validateStoryState(storyState, number, content);
+		} else {
+			try {
+				require('./narrative').validateStoryState(storyState, number, content);
+			} catch (error) {
+				console.warn(`Non-blocking story-state save warning for chapter ${number}: ${error.message}`);
+			}
+		}
+	}
 	const bookPath = path.dirname(metaPath);
 	const file = `${String(number).padStart(3, "0")}.md`;
 	const chapterPath = path.join(bookPath, file);
 
+	if (fs.existsSync(chapterPath)) throw new Error(`Chapter ${number} file already exists`);
 	fs.writeFileSync(chapterPath, content);
 
 	const trimmed = content.trim();
 	const wordCount = trimmed ? trimmed.split(/\s+/).length : 0;
-
-	if (!Array.isArray(meta.chapters)) {
-		meta.chapters = [];
-	}
 
 	meta.chapters.push({
 		number,
 		title,
 		wordCount,
 		file,
+		...(validation ? {validation} : {}),
+		...(diagnostics ? { diagnostics } : {}),
 	});
+    if (storyState) meta.storyState = storyState;
 
+	writeMeta(metaPath, meta);
+}
+
+function setNarrativeAudit(uuid, report) {
+    if (!report.passed && !report.advisory) throw new Error("Cannot mark failed manuscript audit complete");
+    const {metaPath, meta} = readMeta(uuid);
+    meta.narrativeAudit = report;
+    writeMeta(metaPath, meta);
+}
+
+function setPipelineDiagnostics(uuid, diagnostics) {
+	const { metaPath, meta } = readMeta(uuid);
+	meta.pipelineDiagnostics = diagnostics || {};
 	writeMeta(metaPath, meta);
 }
 
@@ -171,9 +239,16 @@ module.exports = {
 	makeBookFolder,
 	setAuthor,
 	setTitle,
+	readMeta,
 	setDescription,
+	setBookDescription,
+	setOriginalDescription,
+	setStoryBible,
+	setChapterOutline,
 	setCoverImage,
 	addChapter,
+    setNarrativeAudit,
+	setPipelineDiagnostics,
 	saveCoverImage,
 	writeFullBook,
 };

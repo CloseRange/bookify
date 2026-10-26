@@ -6,7 +6,7 @@ const {
 const { TOTAL_BOOK_STEPS } = require("../publisher/write_book_progress");
 
 async function main() {
-  const prompt = "Write a book about a magic cat";
+  const prompt = "Write a book about a magical girl who has to fight a dark force threatening her world, with themes of friendship, courage, and self-discovery. The story should be suitable for young adults ";
   startWriteBookJob(prompt);
 
   console.log("Started single global write-book job"); 

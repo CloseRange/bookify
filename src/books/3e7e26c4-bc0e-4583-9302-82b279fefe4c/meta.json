@@ -1,58 +1,68 @@
 {
   "title": "Whispers of Eldershire",
   "author": "Aria",
-  "descritpion": "",
   "coverImage": "coverImage.png",
   "chapters": [
     {
+      "number": 1,
       "title": "The Ink Unbound",
       "wordCount": 1069,
       "file": "001.md"
     },
     {
+      "number": 2,
       "title": "Reflections in the Dreamscape",
       "wordCount": 1328,
       "file": "002.md"
     },
     {
+      "number": 3,
       "title": "Echoes of Imagination",
       "wordCount": 938,
       "file": "003.md"
     },
     {
+      "number": 4,
       "title": "Tapestry of Belief",
       "wordCount": 1159,
       "file": "004.md"
     },
     {
+      "number": 5,
       "title": "The Colors of Connection",
       "wordCount": 1060,
       "file": "005.md"
     },
     {
+      "number": 6,
       "title": "Vows of Imagination",
       "wordCount": 923,
       "file": "006.md"
     },
     {
+      "number": 7,
       "title": "A Tapestry of Voices",
       "wordCount": 1990,
       "file": "007.md"
     },
     {
+      "number": 8,
       "title": "Threads of Defiance",
       "wordCount": 1064,
       "file": "008.md"
     },
     {
+      "number": 9,
       "title": "A Tapestry of New Dreams",
       "wordCount": 1170,
       "file": "009.md"
     },
     {
+      "number": 10,
       "title": "Whispers of Unity",
       "wordCount": 1348,
       "file": "010.md"
     }
-  ]
+  ],
+  "description": ""
 }

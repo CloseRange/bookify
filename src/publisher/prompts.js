@@ -1,3 +1,4 @@
+const { PLAN_FORMAT } = require("./narrative");
 
 
 // Shared helpers
@@ -17,7 +18,7 @@ const truncatePromptText = (value, maxChars = 4000) => {
   return `${text.slice(0, maxChars - 140).trim()}\n...[TRUNCATED for prompt length limits]`;
 };
 
-const chapterLabel = (chapterNumber) => chapterNumber + 1;
+const chapterLabel = (chapterNumber) => chapterNumber;
 
 const chapterCount = () => {
   const count = Number(process.env.CHAPTERS);
@@ -159,6 +160,14 @@ relationships, and narrative constraints in enough detail that
 independent writers can produce consistent chapters.
 
 REQUIRED SECTIONS:
+
+0. PREMISE COMMITMENTS
+- List the original story promises the final manuscript must pay off.
+- Identify the central mystery or driving dramatic question.
+- Identify concrete reveal moments the story must deliver.
+- Identify causal rules/mechanisms that make the premise work.
+- Identify required ending payoffs that must be shown on-page.
+- Distinguish mandatory commitments from optional flavor.
 
 1. STORY OVERVIEW
 - Genre and subgenre
@@ -368,109 +377,224 @@ ${bible}
 // 5. WRITE THE CHAPTER OUTLINE
 // ------------------------------------------------------------
 
-function prompt5WriteChapterOutline(plotline, bible) {
+function prompt5WriteChapterOutline(plotline, bible, premiseCommitments = null) {
   const CHAPTERS = chapterCount();
 
   return `
-Develop a complete, detailed, chapter-by-chapter outline for
-a novel containing EXACTLY ${CHAPTERS} chapters.
+You are an accomplished novelist and story architect.
 
-Use the approved plotline as the narrative blueprint and the story
-bible as the authoritative continuity reference.
+Create a complete, detailed outline for a novel of EXACTLY ${CHAPTERS} chapters.
 
-OBJECTIVES:
-- Construct a cohesive beginning, middle, and ending.
-- Build escalating tension throughout the novel.
-- Develop the protagonist through meaningful choices and consequences.
-- Ensure every chapter advances the plot, character development,
-  relationship dynamics, or central mystery.
-- Balance action, dialogue, introspection, discovery, and quieter moments.
-- Use setups and payoffs across multiple chapters.
-- Avoid repetitive conflicts and filler chapters.
-- Distribute important revelations and turning points effectively.
-- Preserve the planned climax and resolution.
-- Give supporting characters purposeful contributions.
+The outline will be used by an AI author who writes each chapter once.
+There will be NO chapter rewriting or editorial revision after writing.
 
-STRUCTURAL GUIDELINES:
-- Early chapters introduce the protagonist, setting, and central conflict.
-- The inciting incident changes the protagonist's circumstances.
-- The middle develops complications, reversals, and mounting consequences.
-- A meaningful midpoint changes the protagonist's understanding
-  or approach.
-- Later chapters intensify pressure and force difficult sacrifices.
-- A major crisis tests the protagonist's central flaw or belief.
-- The climax emerges from accumulated choices and conflicts.
-- The ending resolves the central story and its emotional arc.
+Therefore, the outline must provide a coherent, complete, non-repetitive narrative blueprint.
 
-These are narrative guidelines, not rigid percentage formulas.
+AUTHORIAL FREEDOM:
+Respect the approved plotline, genre, themes, and author's creative identity.
+The story may be literary, quiet, experimental, action-driven, comedic,
+romantic, mysterious, or any other appropriate form.
 
-FOR EACH CHAPTER PROVIDE:
+Do not impose a rigid three-act formula or force unnecessary action.
+However, each chapter must accomplish something meaningful and distinct.
 
-Chapter [number]
+CORE REQUIREMENT: NARRATIVE PROGRESSION
 
-Working Title:
-A short descriptive working title.
+Every chapter must have:
+1. A distinct narrative purpose.
+2. A concrete starting situation.
+3. A specific goal, problem, question, or dramatic tension.
+4. Observable events that develop the story.
+5. A meaningful change by the chapter's conclusion.
+6. A clearly established ending situation.
+7. A causal relationship with surrounding chapters.
 
-POV and Setting:
-The viewpoint character and primary location(s).
+Emotional development is important, but repeating an established lesson
+without a new decision, complication, consequence, or understanding
+is not meaningful progression.
 
-Timeline:
-When this chapter happens relative to surrounding chapters.
+DISTINCT CHAPTER EVENTS:
 
-Chapter Purpose:
-What this chapter accomplishes in the overall novel.
+Required events must describe what ACTUALLY HAPPENS.
 
-Opening Situation:
-The immediate situation, problem, or emotional state.
+Weak:
+"The characters discuss working together to defeat the villain."
 
-Scene-by-Scene Beats:
-Describe 3-7 meaningful scenes or narrative beats in order.
-For each, identify:
-- The characters involved
-- What each relevant character wants
-- The conflict or obstacle
-- The meaningful event or discovery
-- How the situation changes
+Stronger:
+"The characters disagree over two plans, abandon one after discovering
+a hidden weakness, and commit resources to a specific course of action."
 
-Character Development:
-How this chapter changes important characters or relationships.
+Weak:
+"The protagonist struggles with insecurity."
 
-Conflict and Stakes:
-What becomes more difficult, dangerous, or emotionally costly.
+Stronger:
+"The protagonist refuses a dangerous assignment because of self-doubt,
+forcing an ally to take the risk and permanently changing their relationship."
 
-Setup and Payoff:
-Important clues, promises, revelations, or consequences.
+A conversation, reflection, investigation, or quiet scene can be central
+to a chapter when it produces a genuine narrative development.
 
-Continuity Requirements:
-Relevant facts from earlier chapters that must remain consistent.
+Avoid consecutive chapters that:
+- Repeat the same discussion or strategy.
+- Teach the protagonist the same emotional lesson.
+- Revisit an unchanged problem without new consequences.
+- Repeatedly introduce the same ability or relationship.
+- Delay an already established objective without a new obstacle.
+- Begin and end in essentially the same narrative situation.
 
-Chapter Ending:
-End on a meaningful revelation, decision, consequence,
-emotional turn, or unresolved tension.
+CAUSE AND EFFECT:
 
-Not every ending needs a shocking twist or cliffhanger.
-Use the type of ending that best serves the pacing.
+Each chapter must build on what actually happens before it.
 
-MANDATORY RULES:
-- Produce exactly ${CHAPTERS} chapters.
-- Use a coherent chronological sequence unless a nonlinear
-  structure is deliberately supported by the story bible.
-- Do not contradict the plotline or established canon.
-- Ensure important events receive sufficient setup.
-- Ensure choices create consequences in later chapters.
-- Do not introduce major characters or abilities without
-  appropriate narrative justification.
-- Give the final chapter a satisfying emotional resolution.
+If Chapter 4 ends with characters deciding to enter a dangerous location,
+Chapter 5 must show an appropriate next development, such as beginning
+the journey, encountering an obstruction, changing the mission, or
+discovering a consequence.
+
+Do not simply repeat the Chapter 4 planning conversation.
+
+Ensure transitions across locations and time are plausible.
+
+SETUPS AND PAYOFFS:
+
+Important developments must have appropriate preparation.
+
+Before a major character:
+- Dies or is seriously injured,
+- Betrays someone,
+- Makes a major sacrifice,
+- Reveals an important secret,
+- Uses a significant new ability,
+- Changes a major relationship,
+
+ensure previous chapters have established the necessary context.
+
+A supporting character should not appear for the first time at the
+moment the audience is expected to feel deeply about their loss.
+
+Track character introductions accurately. Do not mark a character
+as introduced unless a required event actually establishes them.
+
+CHARACTER DEVELOPMENT:
+
+Give important characters distinct motivations, worldviews,
+decision-making styles, weaknesses, and practical contributions.
+
+Characters may share themes without expressing identical conflicts.
+
+The protagonist's development must be cumulative.
+
+After a character overcomes an obstacle, later challenges should test
+the consequences of that progress rather than erase it.
+
+ESCALATION AND PACING:
+
+Create variety in scene types, locations, conflicts, and outcomes.
+
+Use action, dialogue, discovery, reflection, suspense, humor,
+quiet moments, setbacks, and relationships when appropriate.
+
+Do not mistake constant intensity for good pacing.
+
+Quiet chapters are welcome, but they must still produce meaningful change.
+
+The middle of the novel must develop new complications and consequences
+rather than repeatedly preparing for the climax.
+
+REVELATIONS AND CLIMAX:
+
+Specify exactly when important information becomes known.
+
+If a major reveal occurs in Chapter 9, it must actually occur there,
+not merely be hinted at or postponed.
+
+If the central conflict is resolved in Chapter 10, the decisive event
+must actually happen in Chapter 10.
+
+Never assume major events occurred between chapters without being shown.
+
+The ending must follow from earlier actions, revelations, and consequences.
+
+PREMISE FULFILLMENT:
+
+Identify the manuscript's core premise promises and ensure the outline
+delivers them through concrete scenes, not vague implications.
+
+For each core promise, plan:
+- where it is setup,
+- where evidence accumulates,
+- where the key reveal occurs,
+- and where the ending payoff is concretely delivered.
+
+If the premise includes a specific mechanism (for example, a ritual,
+device, rule system, or causal trigger), the outline must explicitly show:
+- how it works,
+- how characters test or misunderstand it,
+- what consequences follow,
+- and how the final chapters resolve its unanswered questions.
+
+Do not end with the core mechanism unexplained or unresolved.
+
+STRUCTURED OUTPUT REQUIREMENTS:
+
+Use the provided JSON schema exactly.
+
+For each chapter:
+
+"purpose":
+A specific and unique narrative function.
+
+"start":
+The concrete starting situation, including relevant location,
+characters, and circumstances.
+
+"requiredEvents":
+A sequence of concrete, dramatizable events.
+Each must describe an observable occurrence, decision, discovery,
+interaction, conflict, or consequence.
+
+"ending":
+The actual situation reached at the end of the chapter.
+Make it concrete and consistent with the next chapter.
+
+"introductions":
+Only characters genuinely introduced in that chapter.
+
+"optionalDetails":
+Creative suggestions that are not mandatory plot requirements.
+
+Do not add unsupported JSON fields.
+
+FINAL WHOLE-BOOK CHECK:
+
+Before producing the outline, internally compare all chapters.
+
+For every adjacent pair ask:
+- Are their main events meaningfully different?
+- Does the second build on the first?
+- Is any conversation, training sequence, revelation, or confrontation repeated?
+- Does the later chapter change the story in a new way?
+
+For every major payoff ask:
+- Where was it established?
+- Why should the reader care?
+- Has the necessary information already been introduced?
+
+Repair weaknesses before returning the outline.
 
 OUTPUT:
-Only the complete chapter outline.
-No introductions, explanations, or editorial notes.
+Return ONLY the complete structured chapter outline.
 
-OVERALL PLOTLINE:
+${PLAN_FORMAT}
+
+APPROVED PLOTLINE:
 ${plotline}
 
 STORY BIBLE:
 ${bible}
+
+PREMISE COMMITMENTS:
+${asText(premiseCommitments || {})}
 `;
 }
 
@@ -480,53 +604,144 @@ ${bible}
 
 function prompt6RateChapterOutline(plotline, bible, chapterOutline) {
   return `
-Critically review the chapter outline against the approved plotline
-and story bible.
+You are a demanding developmental editor reviewing a complete novel outline.
 
-EVALUATE:
-- Fidelity to the intended plot and ending
-- Chapter-to-chapter cause and effect
-- Beginning, middle, and ending structure
-- Pacing and distribution of major events
-- Escalation of stakes and conflict
-- Character decisions and development
-- Protagonist agency
-- Supporting character relevance
-- Foreshadowing and payoff
-- Continuity with established story facts
-- Unnecessary scenes and repetitive conflicts
-- Whether chapter endings create meaningful momentum
+Your responsibility is to identify structural problems BEFORE the author
+begins writing.
 
-For every meaningful issue, identify:
-1. The specific chapter or chapters affected.
-2. What is wrong.
-3. Why it harms the novel.
-4. A concrete way to fix it.
+Each chapter will be written once and accepted as final.
+There will be no chapter-by-chapter editorial revision.
 
-Prioritize improvements with the greatest narrative impact.
-Do not recommend changes merely because of personal stylistic taste.
-Do not propose changes that violate established canon.
+Therefore, your evaluation must prioritize narrative completeness,
+coherence, distinctiveness, and proper setup.
+
+Do not approve an outline simply because it sounds interesting,
+contains appealing themes, or follows a recognizable narrative structure.
+
+EVALUATION CRITERIA:
+
+1. DISTINCT CHAPTER PURPOSES
+Does every chapter accomplish something different and necessary?
+
+2. CONCRETE EVENTS
+Are requiredEvents specific occurrences rather than generic emotional
+themes, discussions, or promises about future action?
+
+3. CAUSAL CONTINUITY
+Does each chapter logically follow the previous chapter's ending?
+
+4. PROGRESSIVE CHARACTER DEVELOPMENT
+Do characters retain lessons, knowledge, relationships, and consequences?
+
+5. REPETITION
+Do adjacent or nearby chapters repeat:
+- The same discussion?
+- The same training exercise?
+- The same emotional breakthrough?
+- The same confrontation?
+- The same planning session?
+- The same discovery?
+- The same outcome?
+
+6. SETUP AND PAYOFF
+Are important characters, abilities, relationships, losses,
+revelations, and sacrifices established before their payoffs?
+
+7. PACING
+Does the novel have meaningful variety and momentum without
+unnecessary filler or artificial action?
+
+8. ANTAGONIST AND CENTRAL CONFLICT
+Does the opposing force develop meaningfully?
+Are the climax and resolution explicit and properly supported?
+
+9. CHARACTER DISTINCTIVENESS
+Do major characters contribute different perspectives,
+actions, decisions, and consequences?
+
+10. OUTLINE COMPLETENESS
+Are significant transitions and turning points shown rather
+than assumed to have happened between chapters?
+
+MANDATORY CHAPTER-BY-CHAPTER AUDIT:
+
+Examine every chapter individually.
+
+For each chapter identify:
+- Main narrative event.
+- What changes by the ending.
+- Whether its events are concrete enough to write.
+- Whether required setup exists.
+- Whether it overlaps another chapter.
+- PASS or FAIL.
+
+MANDATORY ADJACENT-CHAPTER AUDIT:
+
+Compare each neighboring pair of chapters.
+
+A planning chapter followed by another substantially identical
+planning chapter is a structural failure unless the second
+introduces a genuinely distinct development.
+
+A character learning the same lesson multiple times without
+new consequences is a structural failure.
+
+Do not reject legitimate thematic callbacks or deliberate
+repetition that produces a substantively different meaning.
+
+CRITICAL FAILURE CONDITIONS:
+
+Return REVISE if:
+- A chapter lacks a meaningful distinct development.
+- Consecutive chapters substantially duplicate their central event.
+- An important payoff lacks necessary setup.
+- A major plot event is assumed to occur off-page.
+- Chapter starts and endings contain serious contradictions.
+- The climax or central resolution is missing or ambiguous.
+- A required character introduction is absent.
+- An intended event is only discussed when it must occur.
+
+A high numerical rating cannot override a critical failure.
+
+Be specific and evidence-based.
+Identify exact chapter numbers and describe concrete corrections.
+Do not invent problems simply to sound demanding.
 
 OUTPUT FORMAT:
+
 Score: X/10
 
-What Works:
-[brief explanation]
+Overall Assessment:
+[Concise judgment of the outline's structural quality.]
 
-Priority Issues:
-1. [chapter reference, problem, reason, solution]
-2. [chapter reference, problem, reason, solution]
-3. [chapter reference, problem, reason, solution]
+Chapter-by-Chapter Audit:
+[For EVERY chapter, identify its unique event, resulting change,
+important dependencies, and PASS or FAIL.]
+
+Repetition and Overlap:
+[List chapter pairs with overlapping dramatic purposes.
+Explain what should be changed. Write "None detected" if appropriate.]
+
+Missing Setups:
+[Identify events lacking necessary earlier preparation.
+Specify where the preparation should occur.]
 
 Continuity Issues:
-[list genuine contradictions, or "None detected"]
+[List actual contradictions or "None detected".]
 
-Suggested Structural Changes:
-[concrete improvements in priority order]
+Critical Issues:
+1. [Problem, chapter numbers, consequences, exact correction]
+2. [Problem, chapter numbers, consequences, exact correction]
+3. [Problem, chapter numbers, consequences, exact correction]
+
+Recommended Structural Changes:
+[Prioritized, actionable improvements.]
 
 Verdict: [APPROVE or REVISE]
 
-Do not rewrite the chapter outline.
+APPROVE only if the outline has no major structural defects.
+
+Do not rewrite the outline.
 
 APPROVED PLOTLINE:
 ${plotline}
@@ -534,10 +749,11 @@ ${plotline}
 STORY BIBLE:
 ${bible}
 
-CHAPTER OUTLINE TO REVIEW:
-${chapterOutline}
+CHAPTER OUTLINE:
+${asText(chapterOutline)}
 `;
 }
+
 
 // ------------------------------------------------------------
 // 7. IMPROVE THE CHAPTER OUTLINE
@@ -549,47 +765,153 @@ function prompt7ImproveChapterOutline(
   arrayOfFeedback
 ) {
   return `
-You have received feedback from multiple independent editors.
+You are an expert novelist revising a complete chapter outline
+based on developmental editorial feedback.
 
-YOUR TASK:
-Produce an improved, complete chapter outline.
+This revision happens BEFORE any chapters are written.
 
-REVISION PROCESS:
-- Consider all feedback carefully.
-- Identify genuine weaknesses and high-impact recommendations.
-- Prioritize corrections involving plot logic, pacing,
-  characterization, stakes, and continuity.
-- Resolve overlapping or conflicting feedback using your judgment.
-- Reject feedback that would weaken the story or violate canon.
-- Preserve effective ideas and scenes from the original outline.
-- Improve transitions and cause-and-effect relationships.
-- Ensure any changed chapter remains consistent with later chapters.
+The finished outline must be detailed, coherent, and suitable
+for an author who writes each chapter only once.
+
+YOUR RESPONSIBILITIES:
+
+1. Carefully evaluate the editorial feedback.
+2. Identify genuine structural defects.
+3. Correct all substantiated critical problems.
+4. Preserve the story's strongest creative ideas.
+5. Maintain consistency with the approved story bible.
+6. Preserve the intended central conflict and ending.
+7. Return a complete revised outline.
+
+PRIORITY 1: REMOVE NARRATIVE REPETITION
+
+Compare the central events of every chapter.
+
+If two chapters repeat the same planning discussion,
+training sequence, emotional realization, confrontation,
+or discovery, redesign the weaker chapter.
+
+Do not simply change the wording of a repeated event.
+
+Create a new narrative development that makes the
+chapter distinct and necessary.
+
+PRIORITY 2: STRENGTHEN REQUIRED EVENTS
+
+Make each chapter's requiredEvents concrete.
+
+Replace vague requirements such as:
+"The characters grow closer and discuss the threat."
+
+With events that specify:
+- What they do.
+- What motivates their actions.
+- What new obstacle or information appears.
+- What decision or consequence follows.
+
+Allow creative and quiet scenes, but ensure they
+produce a meaningful development.
+
+PRIORITY 3: FIX CAUSAL CONTINUITY
+
+Ensure that every chapter begins from a situation
+logically established by previous chapters.
+
+Do not jump between locations, major events, or
+character states without a plausible transition.
+
+Do not assume major events occurred off-page.
+
+PRIORITY 4: REPAIR SETUPS AND PAYOFFS
+
+Establish important characters, relationships, secrets,
+abilities, and circumstances before their major payoffs.
+
+For example, a mentor who will be injured in Chapter 6
+should have meaningful development in an earlier chapter.
+
+Do not introduce major elements only when they become
+necessary to produce emotional impact.
+
+PRIORITY 5: MAKE CHARACTER DEVELOPMENT CUMULATIVE
+
+Characters must retain previous experiences.
+
+Revisiting an insecurity is acceptable only when
+the new situation presents a different challenge,
+decision, consequence, or understanding.
+
+Avoid repeatedly solving a character's central conflict
+through essentially identical conversations.
+
+PRIORITY 6: STRENGTHEN THE CLIMAX AND ENDING
+
+Ensure the central confrontation actually occurs.
+
+Any important revelation must happen in its assigned chapter.
+
+Any important resolution must happen before a later
+chapter assumes it has been completed.
+
+The ending should resolve the central narrative through
+events, choices, and consequences established earlier.
+
+PRIORITY 7: FULFILL THE PREMISE PROMISES
+
+Audit the outline against the story's original promises.
+
+For each promise, ensure the outline contains:
+- explicit setup,
+- investigative or causal development,
+- a concrete reveal,
+- and an ending payoff on-page.
+
+If the premise depends on a specific mechanism or mystery,
+do not leave it under-explained or unresolved.
+
+PRESERVE CREATIVE FREEDOM:
+
+Do not force the story into a rigid formula.
+
+Do not add unnecessary battles, deaths, betrayals, or
+dramatic twists simply to create variety.
+
+Distinct progression can come from relationships,
+investigations, choices, discoveries, personal sacrifices,
+or subtle but consequential changes.
+
+OUTPUT CONSTRAINTS:
+
 - Maintain the original number of chapters.
-- Preserve the planned central conflict, character arcs, and ending
-  unless the story bible explicitly permits a change.
+- Keep chapter numbers complete and sequential.
+- Preserve the supported JSON schema exactly.
+- Do not introduce unsupported fields.
+- Preserve established canon.
+- Keep each chapter's purpose unique.
+- Make every required event clear and dramatizable.
+- Ensure endings establish valid starting states for later chapters.
 
-Do not make unnecessary changes simply to demonstrate revision.
-Every substantial alteration must improve the narrative.
+FINAL INTERNAL VERIFICATION:
 
-QUALITY CHECK BEFORE OUTPUT:
-- Are chapter numbers complete and sequential?
-- Does every chapter have a clear narrative purpose?
-- Does tension rise and evolve?
-- Do characters behave according to established motivation?
-- Are important setups paid off?
-- Does the ending remain properly supported?
-- Are there contradictions or abandoned major story threads?
+Before responding:
+- Compare every adjacent chapter pair.
+- Identify and eliminate unnecessary duplicated events.
+- Verify that major payoffs have earlier setups.
+- Verify character introductions.
+- Verify location and time continuity.
+- Verify the climax occurs and resolves appropriately.
+- Verify that revisions have not created new contradictions.
 
 OUTPUT:
-Return only the complete revised chapter outline.
-Preserve the same chapter-by-chapter format as the original.
-No editorial commentary or explanation of changes.
+Return ONLY the complete revised chapter outline.
+
+${PLAN_FORMAT}
 
 STORY BIBLE:
 ${bible}
 
 ORIGINAL CHAPTER OUTLINE:
-${chapterOutline}
+${asText(chapterOutline)}
 
 EDITORIAL FEEDBACK:
 ${asText(arrayOfFeedback)}
@@ -604,109 +926,369 @@ function prompt8WriteChapterX(
   bible,
   chapterOutline,
   chapterNumber,
-  lastChapter,
-  minPages=5,
-  maxPages=10
+  bookSoFar,
+  storySoFarSummary = "",
+  minPages = 5,
+  maxPages = 10,
+  context = {}
 ) {
+  if (chapterOutline && typeof chapterOutline === 'object' && chapterOutline.number !== Number(chapterNumber)) {
+    throw new Error(`Chapter ${chapterNumber} cannot use plan ${chapterOutline.number}`);
+  }
   const number = chapterLabel(chapterNumber);
   const words = Number(process.env.CHAPTER_WORDS) || 3000;
 
   return `
-Write Chapter ${number} of the novel as polished literary fiction
-appropriate to its established genre and intended audience.
-The chapter should be between ${minPages} and ${maxPages} pages in length, with a target of approximately 300 words per page.
+You are a professional novelist writing Chapter ${number}
+of an existing novel.
 
-You are writing the actual book, not an outline or summary.
+You are the book's primary author.
+
+This chapter will be accepted as the FINAL version.
+There will be no separate AI editor, revision, or rewriting stage.
+
+Write your strongest complete chapter on the first attempt.
+
+The goal is compelling, immersive fiction that faithfully
+executes the approved story plan while preserving your
+individual creative voice.
+
+TARGET LENGTH:
+Approximately ${words} words, with reasonable flexibility.
+
+Do not pad the chapter to meet the target.
+Do not rush or omit important scenes to keep it short.
 
 AUTHORITATIVE REFERENCES:
-- The story bible defines the world, characters, and continuity.
-- The approved chapter outline defines major story events.
-- The previous chapter provides immediate narrative continuity.
 
-WRITING REQUIREMENTS:
+1. STORY BIBLE
+Defines established characters, world rules, relationships,
+major plot constraints, narrative perspective, and tense.
 
-1. IMMERSIVE PROSE
-- Write vivid, natural prose suited to the novel's genre and tone.
-- Use concrete sensory details where they enhance the scene.
-- Favor precise language over excessive adjectives.
-- Vary sentence structure and paragraph rhythm naturally.
-- Avoid clichéd imagery, stock phrases, and generic descriptions.
-- Avoid repeatedly describing the same emotions or surroundings.
+2. CURRENT CHAPTER PLAN
+Defines the required developments that must occur now.
 
-2. SHOW CHARACTER THROUGH ACTION
-- Reveal personality through behavior, decisions, dialogue,
-  contradictions, and reactions.
-- Use internal thoughts when appropriate to the chosen POV.
-- Convey important emotions through meaningful details rather
-  than repeatedly naming those emotions.
-- Allow moments of direct narration when they are more effective
-  than dramatization.
-- Preserve each character's established voice and motivations.
+3. ACCEPTED STORY HISTORY
+Defines what has actually happened and what characters know.
 
-3. AUTHENTIC DIALOGUE
-- Give major characters distinct speaking patterns.
-- Use subtext, disagreement, hesitation, and implication naturally.
-- Avoid dialogue that exists solely to explain background information.
-- Avoid repetitive exchanges that do not change the scene.
-- Combine dialogue with actions and reactions when appropriate.
+4. BOOK SO FAR
+Contains the full manuscript written up to this point, in order,
+so the current chapter can continue the cumulative story without
+forgetting earlier developments, emotional arcs, or world details.
 
-4. SCENE CONSTRUCTION
-- Give important scenes a clear desire, obstacle, development,
-  and consequence.
-- Dramatize key events instead of summarizing them away.
-- Allow important emotional moments room to develop.
-- Use effective transitions between scenes.
-- Balance dialogue, description, action, and interiority.
-- Maintain narrative momentum without rushing every moment.
+5. FUTURE MILESTONES
+Defines important events reserved for later chapters.
 
-5. CONTINUITY
-- Follow the events assigned to Chapter ${number}.
-- Preserve established world rules and character histories.
-- Maintain knowledge boundaries: characters only know what
-  they have plausibly learned.
-- Respect prior injuries, promises, secrets, relationships,
-  locations, and recent events.
-- Follow the established narrative tense and POV conventions.
-- Begin naturally from the previous chapter when provided.
-- Do not prematurely reveal major events reserved for later chapters.
-- Do not resolve conflicts intended to continue.
+6. PREMISE COMMITMENTS
+Defines non-negotiable story promises, core mystery obligations,
+causal mechanism rules, and ending payoffs that must remain active
+throughout the manuscript.
 
-6. CREATIVE EXECUTION
-- You may expand scenes, dialogue, minor interactions, and
-  descriptive details to improve the reading experience.
-- You may introduce small, plausible details consistent with canon.
-- You must preserve the chapter's essential narrative beats.
-- Avoid convenient coincidences or unsupported new abilities.
-- Do not add filler solely to increase word count.
+These references are authoritative. Preserve established canon.
 
-LENGTH:
-Target approximately ${words} words.
-Prioritize a fully realized chapter over hitting the target exactly.
-Do not end abruptly or artificially extend scenes.
+The CURRENT CHAPTER PLAN is the only plan that must be completed in this chapter.
+Future milestones are reserved for later chapters; they are not current requirements.
+The BOOK SO FAR is continuity, not a substitute for the current chapter's mandate.
+The ACCEPTED STORY HISTORY is cumulative context, not a prompt to rehash earlier scenes.
 
-ENDING:
-Conclude at the intended chapter endpoint with the appropriate
-emotional impact, revelation, decision, or unresolved tension.
+==================================================
+MOST IMPORTANT RULE: ACTUALLY WRITE THE EVENTS
+==================================================
 
-FINAL SELF-CHECK:
-Before responding, silently verify that this reads like a
-professional novel chapter rather than AI-generated exposition.
+Every event in the current chapter's requiredEvents
+must occur in the completed chapter.
+
+Do not merely:
+- Discuss the event.
+- Prepare for the event.
+- Promise the event will happen.
+- Hint that the event may happen later.
+- Summarize the event as if it occurred off-page.
+
+Dramatize its important actions, dialogue, discoveries,
+decisions, obstacles, and consequences.
+
+If the chapter requires a confrontation, write the confrontation.
+
+If it requires a revelation, reveal the information.
+
+If it requires a character to travel to a location,
+show or clearly establish the journey and arrival.
+
+If it requires a relationship-changing decision,
+show the choice and its meaningful consequences.
+
+If it requires a battle to conclude, resolve that battle.
+
+Do not replace a mandatory event with a thematically
+similar but unrelated scene.
+
+==================================================
+NARRATIVE CONTINUITY
+==================================================
+
+This is an ongoing novel, not an independent short story.
+
+Continue naturally from the full story so far, building on the
+cumulative arc, relationships, and findings established in earlier
+chapters.
+
+Respect:
+- Established character knowledge.
+- Previous decisions.
+- Relationships and conflicts.
+- Injuries and consequences.
+- Locations and chronology.
+- Discovered abilities and limitations.
+- Completed emotional breakthroughs.
+- Resolved or ongoing plot threads.
+- Core premise commitments and unresolved mystery threads.
+
+Never reintroduce a character or ability as unknown
+if it was already clearly established.
+
+Never repeat an earlier confrontation or discovery
+as though it were happening for the first time.
+
+If a character previously learned something meaningful,
+their new decisions must reflect that experience.
+
+A character may regress or struggle again, but such a
+development needs a credible new cause and consequence.
+
+==================================================
+EACH CHAPTER MUST MOVE THE STORY FORWARD
+==================================================
+
+The chapter must accomplish a distinct narrative purpose.
+
+Important scenes should change at least one of:
+- What a character knows.
+- What a character believes.
+- What a character decides.
+- What a character can or cannot do.
+- What a character risks or stands to lose.
+- How a relationship functions.
+- What obstacles stand in the way.
+- The situation surrounding the central conflict.
+
+Do not spend the chapter repeatedly explaining a lesson
+that readers have already witnessed.
+
+Do not repeat a planning conversation from the previous
+chapter when the current plan requires execution.
+
+A quiet or introspective scene is valuable when it creates
+a meaningful choice, realization, conflict, or consequence.
+
+==================================================
+SCENE WRITING
+==================================================
+
+Write fully realized scenes, not expanded plot summaries.
+
+Important scenes should have:
+- A clear immediate situation.
+- Characters with believable intentions.
+- Something that complicates those intentions.
+- Meaningful action, interaction, or discovery.
+- Consequences that lead naturally to what follows.
+
+Show significant moments through concrete behavior,
+dialogue, and unfolding events.
+
+Avoid simply announcing:
+"They realized they were stronger together."
+
+Instead, let their actions reveal how their relationship
+changes the outcome.
+
+Do not explain the same emotional insight repeatedly.
+
+Allow scenes to breathe when the emotional or dramatic
+importance warrants it.
+
+Use natural transitions between locations and scenes.
+
+==================================================
+PROSE QUALITY
+==================================================
+
+Write vivid, polished prose appropriate to the genre.
+
+Favor precise, meaningful description over decorative language.
+
+Avoid:
+- Excessive metaphors.
+- Recycled phrases.
+- Constant references to hearts, warmth, shadows,
+  light, hope, or similar motifs without new meaning.
+- Repeated descriptions of the same emotion.
+- Generic motivational dialogue.
+- Unnecessary explanations of established themes.
+- Artificially inspirational chapter endings.
+- Formulaic paragraphs that restate previous paragraphs.
+
+Recurring imagery is welcome when it evolves or
+serves a specific narrative purpose.
+
+Vary sentence length and paragraph rhythm.
+
+Use sensory details to establish distinctive places
+and actions rather than simply decorating prose.
+
+==================================================
+CHARACTER WRITING
+==================================================
+
+Characters must feel like distinct individuals.
+
+Give them different:
+- Motivations.
+- Beliefs.
+- Fears.
+- Methods of solving problems.
+- Emotional reactions.
+- Speaking styles.
+- Priorities.
+
+Do not have every character provide variations
+of the same supportive advice.
+
+Allow believable disagreement, miscommunication,
+humor, selfishness, hesitation, and conflicting goals.
+
+Supporting characters should contribute through
+meaningful choices and actions.
+
+The protagonist should exercise agency appropriate
+to the story and current circumstances.
+
+Develop relationships through what people do for,
+with, or against one another, not merely through
+statements about friendship or loyalty.
+
+==================================================
+DIALOGUE
+==================================================
+
+Make conversations natural and purposeful.
+
+Dialogue should reveal character, create tension,
+change a relationship, advance a decision, or
+communicate relevant information.
+
+Avoid exchanges where multiple characters simply
+agree with each other in increasingly inspirational language.
+
+Use subtext and disagreement when appropriate.
+
+Avoid repeated speeches explaining the power
+of courage, friendship, unity, or determination.
+
+Let characters communicate according to their
+individual personalities and circumstances.
+
+==================================================
+STORY STRUCTURE
+==================================================
+
+Follow the approved sequence of required events.
+
+You may create additional minor scenes, dialogue,
+and supporting details when they improve the chapter.
+
+Do not introduce major contradictions or unplanned
+resolutions.
+
+Do not reveal future milestones prematurely.
+
+Do not drop, contradict, or quietly forget the manuscript's
+core premise commitments.
+
+Do not invent convenient powers, information, or
+resources that bypass established obstacles.
+
+The chapter must end in the situation established
+by its approved outline.
+
+The ending should feel earned, not mechanically
+constructed to set up the next chapter.
+
+Avoid unnecessarily recapping the events or themes
+of the entire chapter in its final paragraphs.
+
+==================================================
+NARRATIVE PERSPECTIVE AND TENSE
+==================================================
+
+Follow the story bible's established narration rules.
+
+Keep the same point of view and tense unless
+the approved plan explicitly permits a change.
+
+Maintain narrative voice consistently.
+
+==================================================
+FINAL AUTHOR SELF-CHECK
+==================================================
+
+Before returning your chapter, silently verify:
+
+1. Every required event actually happens.
+2. The chapter follows the established story.
+3. No significant earlier scene is unnecessarily repeated.
+4. Character development remains cumulative.
+5. The chapter introduces meaningful new developments.
+6. The dialogue sounds distinct and natural.
+7. Major events are dramatized, not summarized away.
+8. The approved chapter ending is reached.
+9. Reserved future milestones remain intact.
+10. The chapter reads like finished fiction.
+11. The chapter either advances or preserves the core premise threads.
+
+If any requirement is missing, correct the draft
+internally before producing your final response.
 
 OUTPUT:
-Only the complete prose of Chapter ${number}.
-Do not include a chapter title, outline, notes, word count,
-or explanations.
+Return ONLY the complete prose of Chapter ${number}.
+
+No chapter title.
+No outline.
+No commentary.
+No revision notes.
+No checklist.
+No word count.
+No explanation.
 
 STORY BIBLE:
 ${bible}
 
-COMPLETE CHAPTER OUTLINE:
-${chapterOutline}
+AUTHORITATIVE CURRENT CHAPTER PLAN:
+${asText(chapterOutline)}
 
-PREVIOUS CHAPTER:
-${lastChapter || "This is Chapter 1. No previous chapter exists."}
+FUTURE EVENTS RESERVED FOR LATER CHAPTERS:
+${asText(context.futureMilestones || [])}
+
+PREMISE COMMITMENTS:
+${asText(context.premiseCommitments || {})}
+
+CUMULATIVE PLOT MILESTONES:
+${asText(context.completedMilestones || [])}
+
+ACTIVE UNRESOLVED MYSTERIES:
+${asText(context.activeMysteries || [])}
+
+ACCEPTED STORY HISTORY:
+${storySoFarSummary ||
+  "This is Chapter 1. No previous story events exist."}
+
+BOOK SO FAR:
+${bookSoFar ||
+  "This is Chapter 1. No previous story exists."}
 `;
 }
+
 
 // ------------------------------------------------------------
 // 9. REVIEW CHAPTER X
@@ -716,7 +1298,8 @@ function prompt9ReviewChapterX(
   bible,
   chapterOutline,
   chapterNumber,
-  chapter
+  chapter,
+  context = {}
 ) {
   const number = chapterLabel(chapterNumber);
 
@@ -748,8 +1331,14 @@ Look specifically for:
 - Confusing spatial or temporal transitions
 - Important outline beats that were omitted or rushed
 - Contradictions with the story bible
+- Duplicate scenes or retellings of earlier chapter beats
+- Repeated character development, emotional breakthroughs, or conflict resolutions
+- Chapter-to-chapter resets that undo prior progress without a new consequence
 
 IMPORTANT:
+Separate structural correctness from creative quality; ratings cannot override validation failures.
+Use exact short excerpts; never invent quotations, line references or page numbers.
+Do not request more reflection on an already completed emotional breakthrough.
 Judge the chapter on what actually appears in the text.
 Do not invent problems or demand stylistic changes without reason.
 Preserve the author's strongest creative choices.
@@ -784,8 +1373,11 @@ Do not provide generic encouragement.
 STORY BIBLE:
 ${bible}
 
-APPROVED CHAPTER OUTLINE:
-${chapterOutline}
+AUTHORITATIVE CURRENT CHAPTER PLAN:
+${asText(chapterOutline)}
+
+ACCEPTED HISTORY, PREVIOUS CHAPTER AND RESERVED FUTURE MILESTONES:
+${asText(context)}
 
 CHAPTER ${number} TO REVIEW:
 ${chapter}
@@ -801,13 +1393,18 @@ function prompt10ImproveChapterX(
   chapterOutline,
   chapterNumber,
   chapter,
-  arrayOfFeedback
+  arrayOfFeedback,
+  context = {}
 ) {
   const number = chapterLabel(chapterNumber);
 
   return `
 YOUR TASK:
 Rewrite the provided chapter into a stronger, polished final draft.
+Priority order: restore missing required events; correct outline deviations; fix continuity; remove duplicate scenes; retain cumulative character growth; improve transitions and pacing; then dialogue and prose.
+Regenerate from the assigned plan if the draft fundamentally deviates. Structural failures are mandatory corrections, regardless of editorial ratings.
+Preserve the bible tense and POV unless the approved plan explicitly changes them.
+Target approximately ${Number(process.env.CHAPTER_WORDS) || 3000} words with natural flexibility.
 
 EDITORIAL APPROACH:
 - Preserve what already works.
@@ -820,6 +1417,9 @@ EDITORIAL APPROACH:
 - Preserve or improve the chapter's most effective images,
   revelations, interactions, and dramatic moments.
 - Maintain consistency with the story bible and chapter outline.
+- Remove repeated scenes, repeated emotional discoveries, or duplicate confrontations
+  that do not evolve the story.
+- Ensure the chapter advances the story rather than rephrasing the previous chapter.
 
 FEEDBACK RULES:
 - Treat editorial feedback as recommendations, not absolute commands.
@@ -848,8 +1448,11 @@ Do not include a chapter title.
 STORY BIBLE:
 ${bible}
 
-APPROVED CHAPTER OUTLINE:
-${chapterOutline}
+AUTHORITATIVE CURRENT CHAPTER PLAN:
+${asText(chapterOutline)}
+
+ACCEPTED HISTORY, PREVIOUS CHAPTER AND RESERVED FUTURE MILESTONES:
+${asText(context)}
 
 ORIGINAL CHAPTER ${number}:
 ${chapter}
@@ -867,34 +1470,77 @@ function prompt11WriteChapterName(
   bible,
   chapterOutline,
   chapterNumber,
-  chapter
+  chapter,
+  existingTitles = []
 ) {
   const number = chapterLabel(chapterNumber);
 
   return `
-Create a memorable title for Chapter ${number}.
+You are a professional literary editor specializing in memorable titles.
 
-REQUIREMENTS:
-- Reflect the chapter's actual events, emotional significance,
-  atmosphere, or central theme.
-- Match the novel's genre and tone.
-- Be concise, evocative, and distinctive.
-- Prefer subtle meaning over literal plot summaries when appropriate.
-- Avoid generic phrases and overused dramatic titles.
-- Avoid spoiling major revelations unless intentional.
-- Favor a title that gains meaning after reading the chapter.
+Create ONE distinctive title for Chapter ${number}.
+
+The title must reflect this chapter's actual content,
+rather than merely repeating the novel's broad themes.
+
+TITLE REQUIREMENTS:
+
+- Be concise, memorable, and evocative.
+- Match the genre and author's artistic style.
+- Reflect a meaningful event, image, discovery,
+  location, decision, or emotional turning point.
+- Feel distinctive within the complete novel.
+- Avoid revealing important spoilers unnecessarily.
+- Avoid generic fantasy or dramatic phrasing.
+
+TITLE VARIETY:
+
+Compare your proposed title with every existing chapter title.
+
+Avoid:
+- Repeating the same opening word.
+- Reusing the same main nouns.
+- Rearranging words from an existing title.
+- Repeating the same grammatical template.
+- Repeatedly relying on broad symbolic terms.
+- Creating titles that could describe almost any chapter.
+
+For example, do not generate a sequence such as:
+"Threads of Light"
+"Threads of Unity"
+"Threads of Shadow"
+
+Prefer specificity when appropriate.
+
+A meaningful object, place, choice, or incident from
+the actual chapter may provide a stronger title than
+an abstract description of its themes.
+
+Choose a title that distinguishes this chapter from
+the others while remaining artistically appropriate.
+
+Before responding, internally consider several
+different candidates and choose the strongest.
 
 OUTPUT:
-Exactly one chapter title.
-No quotation marks, chapter number, alternatives, or explanations.
+Return ONLY the raw chapter title.
+
+No chapter number.
+No quotation marks.
+No markdown.
+No explanation.
+No alternatives.
+
+EXISTING CHAPTER TITLES:
+${asText(existingTitles)}
 
 STORY BIBLE:
 ${bible}
 
 CHAPTER OUTLINE:
-${chapterOutline}
+${asText(chapterOutline)}
 
-FINISHED CHAPTER:
+COMPLETED CHAPTER:
 ${chapter}
 `;
 }
@@ -905,7 +1551,7 @@ ${chapter}
 
 function prompt12WriteBookName(bible, chapterOutline) {
   return `
-Create the strongest possible title for this book.
+Create the strongest possible raw title for this book.
 
 REQUIREMENTS:
 - Reflect the book's central themes, emotional identity,
@@ -923,21 +1569,63 @@ Internally consider multiple candidates and select the strongest
 based on originality, memorability, genre fit, and thematic relevance.
 
 OUTPUT:
-Exactly one final book title.
-No quotation marks, subtitles unless genuinely useful,
-explanations, or alternative suggestions.
+Return only the raw title text itself.
+No chapter prefix, no "Book Title:" label, no markdown, no bold,
+no quotation marks, no subtitle formatting, no numbering,
+no explanations, and no alternative suggestions.
 
 STORY BIBLE:
 ${bible}
 
 COMPLETE CHAPTER OUTLINE:
-${chapterOutline}
+${asText(chapterOutline)}
 `;
 }
 
 // ------------------------------------------------------------
 // 13. GENERATE BOOK COVER ART PROMPT
 // ------------------------------------------------------------
+
+function prompt14WriteBookDescription(
+  bible,
+  chapterOutline,
+  title,
+  chapterNames = []
+) {
+  return `
+Write the back-cover description for this finished novel.
+
+PURPOSE:
+Create a short marketing blurb that makes readers want to open the book.
+This should sound like a polished jacket description, not a summary of the writing process.
+
+REQUIREMENTS:
+- Highlight the protagonist, central tension, and emotional stakes.
+- Capture the book's tone, atmosphere, and broader themes.
+- Give a sense of the story arc without revealing the ending.
+- Keep it vivid, readable, and commercial in tone.
+- Aim for one compact paragraph of around 90-170 words.
+- Keep the language clean and immersive.
+- Do not mention the writing process, AI, outlines, or chapters.
+
+OUTPUT:
+Return only the paragraph text.
+No heading, no labels like "Book Description:", no markdown, no bullets,
+no quotes, no chapter references, and no extra commentary.
+
+BOOK TITLE:
+${title}
+
+CHAPTER TITLES:
+${(chapterNames.length ? chapterNames.join(" | ") : "Not yet finalized")}
+
+STORY BIBLE:
+${bible}
+
+COMPLETE CHAPTER OUTLINE:
+${asText(chapterOutline)}
+`;
+}
 
 function prompt13MakeBookCover(
   bible,
@@ -1014,6 +1702,45 @@ ${compactManuscript}
 `;
 }
 
+function prompt15ExtractPremiseCommitments(description, plotline, bible, chapterOutline = "") {
+  return `
+Extract the manuscript's non-negotiable premise commitments.
+
+Return ONLY JSON with this shape:
+{
+  "essentialPlotPromises": ["concrete promise the story must deliver"],
+  "centralMystery": "single-sentence core mystery or dramatic question",
+  "majorReveals": [
+    {
+      "reveal": "what truth is revealed",
+      "expectedPhase": "setup|middle|climax|ending",
+      "whyItMatters": "why this reveal is structurally necessary"
+    }
+  ],
+  "causalRules": ["mechanism or rule that must remain causally consistent"],
+  "requiredEndingPayoffs": ["specific payoff that must be shown on-page by the ending"]
+}
+
+Rules:
+- Keep entries concrete and testable.
+- Prefer short, explicit statements.
+- No stylistic advice.
+- No commentary outside JSON.
+
+ORIGINAL DESCRIPTION:
+${description}
+
+APPROVED PLOTLINE:
+${plotline}
+
+STORY BIBLE:
+${bible}
+
+CURRENT CHAPTER OUTLINE:
+${asText(chapterOutline)}
+`;
+}
+
 
 module.exports = {
   prompt1Plotline,
@@ -1029,5 +1756,7 @@ module.exports = {
   prompt11WriteChapterName,
   prompt12WriteBookName,
   prompt13MakeBookCover,
+  prompt14WriteBookDescription,
+  prompt15ExtractPremiseCommitments,
 };
 

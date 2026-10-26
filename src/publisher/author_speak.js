@@ -6,6 +6,7 @@ const OPENAI_API_URL = "https://api.openai.com/v1/responses";
 const AUTHORS_JSON_PATH = path.join(__dirname, "..", "authors", "authors.json");
 const ROOT_ENV_PATH = path.join(__dirname, "..", "..", ".env");
 const CACHE_FILE_PATH = path.join(__dirname, "..", "..", "cache", "author_speak_cache.json");
+const RETRYABLE_STATUS_CODES = new Set([408, 409, 425, 429, 500, 502, 503, 504]);
 
 function getEnvValue(keys) {
   for (const key of keys) {
@@ -81,39 +82,12 @@ function getCachedEntry(cacheKey, bucketKey) {
     return exact;
   }
 
-  if (!bucketKey) {
-    return null;
-  }
-
-  let latest = null;
-  for (const entry of Object.values(cacheData.entries)) {
-    if (!entry || entry.bucketKey !== bucketKey) {
-      continue;
-    }
-
-    if (!latest) {
-      latest = entry;
-      continue;
-    }
-
-    if ((entry.cachedAt || "") > (latest.cachedAt || "")) {
-      latest = entry;
-    }
-  }
-
-  return latest;
+  return null;
 }
 
 function setCachedEntry(cacheKey, entry, bucketKey) {
   const cacheData = readCacheFile();
 
-  if (bucketKey) {
-    for (const [key, value] of Object.entries(cacheData.entries)) {
-      if (value && value.bucketKey === bucketKey) {
-        delete cacheData.entries[key];
-      }
-    }
-  }
 
   cacheData.entries[cacheKey] = {
     ...entry,
@@ -163,6 +137,137 @@ function getFetch() {
   }
 
   return fetch;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function parsePositiveInt(rawValue, fallback, min, max) {
+  const parsed = Number(rawValue);
+  if (!Number.isInteger(parsed)) {
+    return fallback;
+  }
+  if (parsed < min || parsed > max) {
+    return fallback;
+  }
+  return parsed;
+}
+
+function getApiRetryConfig() {
+  const maxAttempts = parsePositiveInt(process.env.BOOKIFY_API_MAX_ATTEMPTS, 3, 1, 8);
+  const baseDelayMs = parsePositiveInt(process.env.BOOKIFY_API_RETRY_BASE_MS, 400, 100, 5000);
+  const maxDelayMs = parsePositiveInt(process.env.BOOKIFY_API_RETRY_MAX_MS, 8000, 500, 30000);
+  return { maxAttempts, baseDelayMs, maxDelayMs };
+}
+
+function parseOpenAiErrorBody(raw) {
+  if (!raw) {
+    return { parsed: null, message: "" };
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    const message = parsed?.error?.message || raw;
+    return { parsed, message };
+  } catch (_error) {
+    return { parsed: null, message: raw };
+  }
+}
+
+function getRetryAfterMs(headers) {
+  const retryAfter = headers?.get?.("retry-after");
+  if (!retryAfter) {
+    return null;
+  }
+  const asNumber = Number(retryAfter);
+  if (Number.isFinite(asNumber) && asNumber >= 0) {
+    return Math.round(asNumber * 1000);
+  }
+  const asDate = Date.parse(retryAfter);
+  if (!Number.isNaN(asDate)) {
+    return Math.max(0, asDate - Date.now());
+  }
+  return null;
+}
+
+function isRetryableOpenAiFailure(status, parsedError) {
+  if (!RETRYABLE_STATUS_CODES.has(status)) {
+    return false;
+  }
+  const code = String(parsedError?.error?.code || "").toLowerCase();
+  const type = String(parsedError?.error?.type || "").toLowerCase();
+  if (code === "credit_balance_exhausted" || code === "insufficient_quota") {
+    return false;
+  }
+  if (type === "insufficient_quota") {
+    return false;
+  }
+  return true;
+}
+
+function computeBackoffDelayMs(attempt, baseDelayMs, maxDelayMs, retryAfterMs) {
+  if (Number.isFinite(retryAfterMs) && retryAfterMs >= 0) {
+    return Math.min(maxDelayMs, retryAfterMs);
+  }
+  const exponential = Math.min(maxDelayMs, baseDelayMs * Math.pow(2, Math.max(0, attempt - 1)));
+  const jitter = Math.floor(Math.random() * Math.max(100, Math.floor(baseDelayMs / 2)));
+  return Math.min(maxDelayMs, exponential + jitter);
+}
+
+async function postJsonWithRetries(url, payload, { requestLabel = "OpenAI request", authorId = "unknown" } = {}) {
+  const fetchFn = getFetch();
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("Missing OPENAI_API_KEY");
+  }
+
+  const retryConfig = getApiRetryConfig();
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= retryConfig.maxAttempts; attempt++) {
+    try {
+      const response = await fetchFn(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        return await response.json();
+      }
+
+      const errorBody = await response.text();
+      const { parsed, message } = parseOpenAiErrorBody(errorBody);
+      const reason = `${requestLabel} failed for ${authorId}: ${response.status} ${message}`;
+      const retryable = isRetryableOpenAiFailure(response.status, parsed);
+      const retryAfterMs = getRetryAfterMs(response.headers);
+
+      if (!retryable || attempt >= retryConfig.maxAttempts) {
+        throw new Error(`OpenAI API error: ${response.status} ${errorBody}`);
+      }
+
+      const delayMs = computeBackoffDelayMs(attempt, retryConfig.baseDelayMs, retryConfig.maxDelayMs, retryAfterMs);
+      console.warn(`${reason}; retrying in ${delayMs}ms (attempt ${attempt + 1}/${retryConfig.maxAttempts})`);
+      await sleep(delayMs);
+      continue;
+    } catch (error) {
+      const message = error && error.message ? error.message : String(error);
+      const networkRetryable = /network|timed out|socket|econnreset|enotfound|eai_again|fetch failed/i.test(message);
+      const shouldRetry = networkRetryable && attempt < retryConfig.maxAttempts;
+      if (!shouldRetry) {
+        throw error;
+      }
+      const delayMs = computeBackoffDelayMs(attempt, retryConfig.baseDelayMs, retryConfig.maxDelayMs, null);
+      console.warn(`${requestLabel} transport error for ${authorId}: ${message}; retrying in ${delayMs}ms (attempt ${attempt + 1}/${retryConfig.maxAttempts})`);
+      lastError = error;
+      await sleep(delayMs);
+    }
+  }
+
+  throw lastError || new Error(`${requestLabel} failed after retries`);
 }
 
 function extractResponseText(data) {
@@ -260,7 +365,7 @@ function resolveAuthor(authorProfile) {
  * @param {string} generationPrompt Prompt such as "Generate me X, Y, Z".
  * @returns {Promise<string>} Model response text.
  */
-async function generateResponse(authorProfile, generationPrompt) {
+async function generateResponse(authorProfile, generationPrompt, { onCacheMetadata, responseFormat } = {}) {
   loadEnvFromFileIfNeeded();
 
   if (!generationPrompt || typeof generationPrompt !== "string") {
@@ -278,18 +383,23 @@ async function generateResponse(authorProfile, generationPrompt) {
     authorId: author.id,
     authorMarkdown,
     generationPrompt,
+    responseFormat: responseFormat || null,
   });
+  const currentMetadata = { hit: false, enabled: useCache, cacheKey, bucketKey, authorId: author.id, model, kind: "generateResponse" };
+  generateResponse.lastCacheMetadata = currentMetadata;
 
-  if (useCache) {
+  if (!useCache) {
+    onCacheMetadata?.({ ...currentMetadata, enabled: false });
+  } else {
     const cached = getCachedEntry(cacheKey, bucketKey);
     if (cached && typeof cached.value === "string") {
+      const hitMetadata = { ...currentMetadata, hit: true, enabled: true };
+      generateResponse.lastCacheMetadata = hitMetadata;
+      onCacheMetadata?.(hitMetadata);
       return cached.value;
     }
-  }
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error("Missing OPENAI_API_KEY");
+    onCacheMetadata?.({ ...currentMetadata, hit: false, enabled: true });
   }
 
   const input = [
@@ -304,25 +414,22 @@ async function generateResponse(authorProfile, generationPrompt) {
     },
   ];
 
-  const fetchFn = getFetch();
-  const response = await fetchFn(OPENAI_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      input,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`OpenAI API error: ${response.status} ${errorBody}`);
+  const payload = {
+    model,
+    input,
+  };
+  if (responseFormat) {
+    payload.text = {
+      format: typeof responseFormat === "string"
+        ? { type: responseFormat }
+        : responseFormat,
+    };
   }
 
-  const data = await response.json();
+  const data = await postJsonWithRetries(OPENAI_API_URL, payload, {
+    requestLabel: "generateResponse",
+    authorId: author.id,
+  });
   const output = extractResponseText(data);
 
   if (!output) {
@@ -380,11 +487,6 @@ async function rateBookText(authorProfile, textBlock, ratingPrompt) {
     }
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error("Missing OPENAI_API_KEY");
-  }
-
   const input = [
     {
       role: "system",
@@ -397,25 +499,13 @@ async function rateBookText(authorProfile, textBlock, ratingPrompt) {
     },
   ];
 
-  const fetchFn = getFetch();
-  const response = await fetchFn(OPENAI_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      input,
-    }),
+  const data = await postJsonWithRetries(OPENAI_API_URL, {
+    model,
+    input,
+  }, {
+    requestLabel: "rateBookText",
+    authorId: author.id,
   });
-
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`OpenAI API error: ${response.status} ${errorBody}`);
-  }
-
-  const data = await response.json();
   const output = extractResponseText(data);
 
   const match = output.match(/\b(10|[1-9])\b/);
@@ -491,39 +581,24 @@ async function generateImage(authorProfile, imagePrompt, outputPath) {
     }
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error("Missing OPENAI_API_KEY");
-  }
-
-  const fetchFn = getFetch();
-  const response = await fetchFn(OPENAI_IMAGES_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      prompt: finalPrompt,
-      size: IMAGE_SIZE,
-      n: 1,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.text();
-    const message = JSON.parse(errorBody || '{}')?.error?.message || errorBody || 'Unknown image generation error';
+  const data = await postJsonWithRetries(OPENAI_IMAGES_URL, {
+    model,
+    prompt: finalPrompt,
+    size: IMAGE_SIZE,
+    n: 1,
+  }, {
+    requestLabel: "generateImage",
+    authorId: author.id,
+  }).catch((error) => {
+    const message = error && error.message ? error.message : String(error);
     const isInvalidModel = /model.*(does not exist|invalid_value|not found)|invalid.*model/i.test(message);
     if (isInvalidModel) {
       throw new Error(
         `OpenAI image API error for ${author.id}: the configured model "${model}" is not available to this account. Set OPENAI_IMAGE_MODEL to a valid image-capable model and confirm image generation is enabled for your API key/account.`
       );
     }
-    throw new Error(`OpenAI image API error for ${author.id}: ${response.status} ${errorBody}`);
-  }
-
-  const data = await response.json();
+    throw error;
+  });
   const b64 = data?.data?.[0]?.b64_json;
   if (!b64) {
     throw new Error("No image returned from model");
