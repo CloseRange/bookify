@@ -79,6 +79,11 @@ async function loadBooks() {
         id,
         title,
         description,
+        author: meta.author || '',
+        chapterCount: Array.isArray(meta.chapters) ? meta.chapters.length : 0,
+        wordCount: Array.isArray(meta.chapters)
+          ? meta.chapters.reduce((sum, chapter) => sum + (Number(chapter?.wordCount) || 0), 0)
+          : 0,
         cover: `${BOOKS_BASE}/${id}/${meta.coverImage || 'coverImage.png'}`,
       };
     })
@@ -99,14 +104,62 @@ async function loadBooks() {
     .map(
       (book) => `
         <article class="book-card">
-          <a href="book.html?id=${book.id}" aria-label="Open ${book.title}">
-            <img class="book-card-cover" src="${book.cover}" alt="${book.title} cover" />
-          </a>
+          <button type="button" class="book-card-button" data-book-id="${escapeHtml(book.id)}" aria-label="View details for ${escapeHtml(book.title)}">
+            <img class="book-card-cover" src="${escapeHtml(book.cover)}" alt="${escapeHtml(book.title)} cover" />
+          </button>
         </article>
       `
     )
     .join('');
+
+  booksGrid.onclick = (event) => {
+    const button = event.target.closest('.book-card-button');
+    if (!button) return;
+    const book = sortedBooks.find((item) => item.id === button.dataset.bookId);
+    if (book) openBookModal(book, button);
+  };
 }
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+let lastFocused = null;
+
+function closeBookModal() {
+  const modal = document.querySelector('#bookModal');
+  if (!modal || modal.hidden) return;
+  modal.hidden = true;
+  document.body.classList.remove('modal-open');
+  lastFocused?.focus();
+}
+
+function openBookModal(book, trigger) {
+  const modal = document.querySelector('#bookModal');
+  lastFocused = trigger;
+  const stats = [
+    book.chapterCount ? `${book.chapterCount} chapters` : '',
+    book.wordCount ? `${book.wordCount.toLocaleString()} words` : '',
+  ].filter(Boolean).join(' · ');
+
+  modal.querySelector('.modal-cover').src = book.cover;
+  modal.querySelector('.modal-cover').alt = `${book.title} cover`;
+  modal.querySelector('#bookModalTitle').textContent = book.title;
+  modal.querySelector('.modal-author').textContent = book.author ? `by ${book.author}` : '';
+  modal.querySelector('.modal-stats').textContent = stats;
+  modal.querySelector('.modal-description').textContent = book.description;
+  modal.querySelector('.modal-read').href = `book.html?id=${encodeURIComponent(book.id)}`;
+  modal.hidden = false;
+  document.body.classList.add('modal-open');
+  modal.querySelector('.modal-read').focus();
+}
+
+document.querySelector('#bookModal')?.addEventListener('click', (event) => {
+  if (event.target.matches('[data-close]')) closeBookModal();
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') closeBookModal();
+});
 
 async function init() {
   const [booksResult] = await Promise.allSettled([loadBooks()]);

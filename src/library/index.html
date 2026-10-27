@@ -40,6 +40,21 @@
       </main>
     </div>
 
+    <div class="modal" id="bookModal" hidden>
+      <div class="modal-backdrop" data-close></div>
+      <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="bookModalTitle">
+        <button type="button" class="modal-close" data-close aria-label="Close">×</button>
+        <img class="modal-cover" src="" alt="" />
+        <div class="modal-info">
+          <h2 id="bookModalTitle"></h2>
+          <p class="modal-author"></p>
+          <p class="modal-stats"></p>
+          <p class="modal-description"></p>
+          <a class="modal-read" href="#">Read now</a>
+        </div>
+      </div>
+    </div>
+
     <script src="../authors/authors.js"></script>
     <script src="../books/meta.js"></script>
     <script src="../books/catalog.js"></script>
